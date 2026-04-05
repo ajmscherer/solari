@@ -136,7 +136,12 @@ class KApp(kivy.app.App):
         app = self.graphicApp
         widget =  KMainWidget(app, app.framePerSecond)
         window = kivy.core.window.Window
-        window.fullscreen = False
+        srs = 'sizeRequirement'
+        if srs in app.__dict__:
+            width, height = app.__dict__[srs]
+            window.size = width, height
+        else:
+            window.fullscreen = True
         kivy.core.window.Window.bind(on_resize=self.on_window_resize)
         return widget
 
@@ -159,10 +164,7 @@ class KivyApp(grabst.App):
 
 
 class KivyFactory(grabst.Factory):
-
-    @staticmethod
-    def getApp():
-        return KivyApp
+    APP = KivyApp
 
 
 
