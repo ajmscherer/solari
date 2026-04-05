@@ -1,13 +1,13 @@
 import datetime
-import grkivy
-from grabst import *
+from grkivy import KivyFactory
+from grabst import Palette
 import math
 
 from PIL import Image, ImageDraw, ImageFont
 
 from enum import Enum, auto
 
-App =  grkivy.KivyFactory.getApp() 
+App =  KivyFactory.getApp() 
 
 class ic(Enum):
     '''image type'''
@@ -16,7 +16,7 @@ class ic(Enum):
     BOTTOM = auto()
 
 # DEFAULT_FONT_FILE_PATH = "/Users/alex/Downloads/freeroad/Freeroad Black.ttf"
-DEFAULT_FONT_FILE_PATH = "Freeroad Regular.ttf"
+DEFAULT_FONT_FILE_PATH = "././resources/Freeroad Regular.ttf"
 
 class DemoApp(App):
 
@@ -40,7 +40,7 @@ class DemoApp(App):
 
     def getImage(self, symbol):
 
-        if not symbol in self.imageCache:
+        if symbol not in self.imageCache:
 
             # retrieve width and height
             width, height = self.symbolWidth, self.symbolHeight
@@ -63,7 +63,7 @@ class DemoApp(App):
             draw.text(position, symbol, font=font)
 
             # flip image vertically
-            image = image.transpose(Image.FLIP_TOP_BOTTOM)
+            image = image.transpose(Image.FLIP_TOP_BOTTOM) # type: ignore
 
             height_mid = height //2
 
@@ -110,9 +110,9 @@ class DemoApp(App):
 
         N = self.getN(time)
         string = f"{N:0>3}"
-        l = len(string)
+        string_length = len(string)
         padding =5
-        x0=(wc-l * self.symbolWidth - (l-1) * padding) // 2
+        x0=(wc-string_length * self.symbolWidth - (string_length-1) * padding) // 2
         y0=(hc - self.symbolHeight) //2
 
         ms = time.microsecond

@@ -15,7 +15,8 @@ import threading
 
 import random
 
-from grport import App, Color, Palette, CanvasRelative
+from grport import App,  Palette
+from grabst import CanvasRelative
 
 import datetime
 from abc import ABC, abstractmethod
@@ -23,16 +24,26 @@ from enum import Enum, auto
 import math
 
 import unidecode
+from pathlib import Path
 
 # Definition of constants
 
-DEFAULT_SOURCE_TEXT_PATH = 'graphics/poeme.txt'
+BASE_DIR = Path(__file__).resolve().parent.parent
+RESOURCES_DIR = BASE_DIR / "resources"
+
+DEFAULT_SOURCE_TEXT_PATH = RESOURCES_DIR / "poeme.txt"
 
 DEFAULT_ROTATION_SPEED = 125  # time in milliseconds to go from one charactere to the next
 DEFAULT_FRAME_PER_SECOND = 24
-DEFAULT_GLYPH_SIZE = 65,110
-DEFAULT_FONT_SIZE = 80
-GLYPH_PADDING = 6
+
+#DEFAULT_GLYPH_SIZE = 65,110
+#GLYPH_PADDING = 6
+#DEFAULT_FONT_SIZE = 80
+
+DEFAULT_GLYPH_SIZE = 24,38
+GLYPH_PADDING = 3
+DEFAULT_FONT_SIZE = 30
+
 DEFAULT_PANEL_SIZE = 32 , 7
 DEFAULT_PANEL_PADDING = 50
 DEFAULT_PORT_REFRESH_LAPSE = 10 # time in milliseconds for the panel to deal with one port to the next when refreshing 
@@ -46,8 +57,8 @@ ALL_CHARS = " 01234567890"+ALPHA_CHAR+"!'\"$%&*-=+:,.?"
 #DEFAULT_FONT_FILE_PATH = "graphics/Solari.ttf"
 EXCEPTION_NOT_IMPLEMENTED = 'Not implemented yet'
 
-DEFAULT_FONT_FILE_PATH = "graphics/Freeroad Regular.ttf"
-RELAY_SOUND_PATH = "graphics/relay_sound.wav"
+DEFAULT_FONT_FILE_PATH = RESOURCES_DIR / "Freeroad Regular.ttf"
+RELAY_SOUND_PATH = RESOURCES_DIR / "relay_sound.wav"
 
 
 # enumerations
@@ -84,7 +95,7 @@ class Glyph(myobject, ABC):
 
     @abstractmethod
     def buildImages(self):
-       pass
+       return {}
 
 class CharGlyph(Glyph):
 
@@ -117,7 +128,7 @@ class CharGlyph(Glyph):
         draw.text(position, self.character, font=font)
 
         # flip image vertically
-        image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+        image = image.transpose(PIL.Image.FLIP_TOP_BOTTOM) # type: ignore
 
         height_mid = height //2
 
@@ -159,9 +170,9 @@ class GlyphSet:
         
     def findNextGlyphCode(self, glyphCode):
         if glyphCode in self.glyphs:
-            l = list(self.glyphs.keys())
-            i = l.index(glyphCode)
-            nextGlyphCode=l[(i+1)%len(l)]
+            lk = list(self.glyphs.keys())
+            i = lk.index(glyphCode)
+            nextGlyphCode=lk[(i+1)%len(lk)]
             return nextGlyphCode
         else:
             raise Exception (f"Unknown glyphCode '{glyphCode}'")
@@ -216,7 +227,6 @@ class GlyphPort:
         # retrieve glyph by code
         glyphSet = self.glyphPanel.glyphSet
         glyph = glyphSet.getGlyph(glyphCode)
-        GLYPH_SIZE = glyphSet
 
         # retrieve the image to draw
         images = glyph.getImages()
@@ -310,11 +320,11 @@ class GlyphRanker:
         return self.cacheFunctionDict
 
     def getIndex(self, function):
-        l = []
+        glyph_list = []
         for row in range(self.rowCount): 
             for col in range(self.rowLength):
-                l.append((col, row, *function(col, row)))
-        sl = sorted(l, key=lambda element:element[-1])
+                glyph_list.append((col, row, *function(col, row)))
+        sl = sorted(glyph_list, key=lambda element:element[-1])
         return [element[:-1] for element in sl]
 
     def default(self, col, row):
@@ -372,7 +382,7 @@ class GlyphPanel:
     def getRelaySound(self):
 
         if not self.audioCache:
-            self.audioCache = simpleaudio.WaveObject.from_wave_file(RELAY_SOUND_PATH)
+            self.audioCache = simpleaudio.WaveObject.from_wave_file(str(RELAY_SOUND_PATH))
 
         return self.audioCache
 
@@ -380,9 +390,6 @@ class GlyphPanel:
         return self.portRotationSpeed
 
     def initGlyphPorts(self):
-
-        # retrieve glyphSet
-        glyphSet = self.glyphSet
 
         # retrieve size
         rowLength, rowCount = self.panelSize
@@ -484,7 +491,6 @@ class TextParser:
             # retrieve panel size
             rowLength, rowCount = self.glyphPanel.panelSize
             
-            scanPos =0
             lines = []
 
             def eatWord(cursor0):
@@ -542,7 +548,7 @@ class SolariApp(App):
                  ) -> None:
         
         # set window title
-        self.title = "Solari Colvim"
+        self.title = "Solari Board Simulator"
 
         # calculate size requirement base on characteristics of the panel
         rowLength, rowCount = panelSize
@@ -592,15 +598,6 @@ class SolariApp(App):
                     'LU321 ROTTERDAM   23h14 GATE 31/',
                     f'{"Welcome".rjust(rowLength)}//{fmtTime(now)}//TO THE SOLARI BOARD SIMULATOR',
                            ]
-
-        messages2 = \
-        [
-            f'Salut Martin, Edouard, Alexis /et Berlioz',
-            f'Bienvenue a Mexico// Victoire Olympe /  Maxime Pauline/   Marion Cecile Alex//{fmtTime(now)}',
-            f'samedi 23 decembre// diner a Polanco////{fmtTime(now)}',
-            f'dimanche 24 decembre// visite du musee antropologique////{fmtTime(now)}',
-            f'lundi 25 decembre// visite pyramides/ dejeuner a l entrecote///{fmtTime(now)}',
-        ]
 
         life = ( time - self.panel.panelStartTime).seconds
 
