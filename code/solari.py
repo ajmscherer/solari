@@ -15,8 +15,7 @@ import threading
 
 import random
 
-from grport import App,  Palette
-from grabst import CanvasRelative
+from grabst import CanvasRelative, GraphicApp, Palette
 
 import datetime
 from abc import ABC, abstractmethod
@@ -532,9 +531,10 @@ class TextParser:
         return block
 
 
-class SolariApp(App):
+class SolariApp(GraphicApp):
 
     def __init__(self, 
+                 graphicInterface,
                  framePerSecond=DEFAULT_FRAME_PER_SECOND,
                  glyphSize=DEFAULT_GLYPH_SIZE,
                  fontSize = DEFAULT_FONT_SIZE,
@@ -547,8 +547,13 @@ class SolariApp(App):
                  sound = DEFAULT_SOUND,
                  ) -> None:
         
+        # call ancestor constructor
+        super().__init__(graphicInterface=graphicInterface, framePerSecond=framePerSecond)
+        
         # set window title
         self.title = "Solari Board Simulator"
+        self.graphicInterface.setTitle(self.title)
+
 
         # calculate size requirement base on characteristics of the panel
         rowLength, rowCount = panelSize
@@ -556,10 +561,8 @@ class SolariApp(App):
         sizeRequirement = (rowLength-1) * ( w + glyphPadding) + w + panelPadding*2, \
                             (rowCount-1) * (h+glyphPadding) + h + panelPadding*2
 
-        # call ancestor constructor
-        super().__init__(framePerSecond= framePerSecond, sizeRequirement=sizeRequirement, title=self.title)
+        self.setSizeRequirement(sizeRequirement)
         
-
         # build glyphset
         self.glyphSet = GlyphSet.buildStandard(glyphSize=glyphSize, fontSize=fontSize)
 
@@ -614,8 +617,3 @@ class SolariApp(App):
             
 
         self.panel.draw(canvas, time)
-
-
-if __name__ == '__main__':
-    solariApp = SolariApp()
-    solariApp.run()

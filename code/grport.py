@@ -1,13 +1,12 @@
 import datetime
-from grkivy import KivyFactory
-from grabst import Palette
+
+from grkivy import KiviGraphicInterface
+from grabst import GraphicApp, Palette
 import math
 
 from PIL import Image, ImageDraw, ImageFont
 
 from enum import Enum, auto
-
-App =  KivyFactory.getApp() 
 
 class ic(Enum):
     '''image type'''
@@ -18,11 +17,12 @@ class ic(Enum):
 # DEFAULT_FONT_FILE_PATH = "/Users/alex/Downloads/freeroad/Freeroad Black.ttf"
 DEFAULT_FONT_FILE_PATH = "././resources/Freeroad Regular.ttf"
 
-class DemoApp(App):
+class DemoApp(GraphicApp):
 
-    def __init__(self, framePerSecond, fontSize, fontFilePath) -> None:
+    def __init__(self, graphicInterface, framePerSecond, fontSize, fontFilePath) -> None:
+        super().__init__(graphicInterface=graphicInterface,framePerSecond=framePerSecond, title="Demo App")
         sizeRequirement = (800,300)
-        super().__init__(framePerSecond=framePerSecond, sizeRequirement=sizeRequirement, title="demo")
+        self.setSizeRequirement(sizeRequirement)
         self.imageCache = {}
         self.symbolHeight, self.symbolWidth = fontSize, fontSize
         self.font = ImageFont.truetype(fontFilePath,size=fontSize) 
@@ -128,9 +128,11 @@ class DemoApp(App):
 
     def draw(self, canvas, time):
         self.drawCircle(canvas, time)
-        self.drawRectangle(canvas,time)
-        self.drawCounterImage(canvas, time)
+        if time.second % 2 == 0:
+            self.drawRectangle(canvas,time)
+        #self.drawCounterImage(canvas, time)
 
 if __name__ == '__main__':
-    app = DemoApp(framePerSecond=10, fontSize=250, fontFilePath=DEFAULT_FONT_FILE_PATH)
+    gi = KiviGraphicInterface()
+    app = DemoApp(graphicInterface=gi, framePerSecond=4, fontSize=250, fontFilePath=DEFAULT_FONT_FILE_PATH)
     app.run()

@@ -86,31 +86,51 @@ class CanvasRelative(Canvas):
     def _getSize(self):
         return self.size
 
-class App(ABC):
 
-    def __init__(self, framePerSecond, sizeRequirement) -> None:
-        super().__init__()
-        self.framePerSecond = framePerSecond
-        self.sizeRequirement = sizeRequirement
-
-    def drawMainWindow(self, canvas, time):
-        self.draw(canvas=canvas, time=time)
-
-    def run(self):
-        self._run()
+class GraphicInterface(ABC):
 
     @abstractmethod
-    def _run(self):
-        pass
+    def start(self, drawFunction, sizeRequirement, framePerSecond):
+        '''Start the underlying graphic system'''
+
+    @abstractmethod
+    def setTitle(self, title):
+        '''Set the title of the main window'''
+
+    
+
+class GraphicApp(ABC):
+
+    def __init__(self, graphicInterface, sizeRequirement=(100,100), framePerSecond=1, title='No Title') -> None:
+        super().__init__()
+        self.graphicInterface = graphicInterface
+        self.setSizeRequirement(sizeRequirement)
+        self.setFramePerSecond(framePerSecond)
+        self.setTitle(title)
+
+    def setSizeRequirement(self, sizeRequirement):
+        '''Set the size requirement of the main window. This is used by the graphic interface to determine the size of the window and the scale factor to apply to the drawing functions.'''
+        self.sizeRequirement = sizeRequirement
+
+    def setFramePerSecond(self, framePerSecond):
+        '''Set the frame per second of the main window. This is used by the graphic interface to determine how often to call the drawing function.'''
+        self.framePerSecond = framePerSecond
+
+    def setTitle(self, title):
+        '''Set the title of the main window'''
+        self.title = title
+        self.graphicInterface.setTitle(title)
+
+
+    def run(self):
+        '''Start the app'''
+        self.graphicInterface.start(drawFunction=self.drawMainWindow, sizeRequirement=self.sizeRequirement, framePerSecond=self.framePerSecond)
+
+    def drawMainWindow(self, canvas, time):
+        '''Draw the main window. This method is called by the graphic interface'''
+        self.draw(canvas=canvas, time=time)
 
     @abstractmethod
     def draw(self, canvas, time):
         pass
 
-class Factory(ABC):
-
-    APP = None
-
-    @classmethod
-    def getApp(cls):
-        return cls.APP
