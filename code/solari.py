@@ -358,11 +358,11 @@ class GlyphRanker:
 
 class GlyphPanel:
 
-    def __init__(self, glyphSet, glyphSize, glyphPadding, panelSize, portRotationSpeed, portRefreshLapse, sound) -> None:
+    def __init__(self, glyphSet, glyphSize, glyphPadding, panelDimension, portRotationSpeed, portRefreshLapse, sound) -> None:
         self.glyphSet = glyphSet
         self.glyphSize = glyphSize
         self.glyphPadding = glyphPadding
-        self.panelSize = panelSize
+        self.panelDimension = panelDimension
         self.portRotationSpeed = portRotationSpeed
         self.portRefreshLapse = portRefreshLapse
         self.audioCache = None
@@ -373,7 +373,7 @@ class GlyphPanel:
         # init ports
         self.initGlyphPorts()
 
-        self.rankings = GlyphRanker(*self.panelSize).getRankings()
+        self.rankings = GlyphRanker(*self.panelDimension).getRankings()
 
     def getGlyphSize(self):
         return self.glyphSize
@@ -391,7 +391,7 @@ class GlyphPanel:
     def initGlyphPorts(self):
 
         # retrieve size
-        rowLength, rowCount = self.panelSize
+        rowLength, rowCount = self.panelDimension
 
         # populate panel with Glyphs
         glyphPorts = []
@@ -401,14 +401,14 @@ class GlyphPanel:
 
         self.glyphPorts = glyphPorts
 
-    def refresh(self, text:str):
+    def updateText(self, text:str):
         '''
         Display a text on the panel.
 
         text: a slash separated string where each segment represent a line 
         '''
 
-        lineSize, rowCount = self.panelSize
+        lineSize, rowCount = self.panelDimension
 
         lines = text.split("/")[:rowCount]
 
@@ -434,25 +434,27 @@ class GlyphPanel:
                 glyphPort = self.glyphPorts[rowCount-row-1][col]
                 glyphPort.setNewTargetGlyph(symbol)
 
+    def getSize(self):
+        '''Get width and heigh of the panel area'''
+        rowLength, rowCount = self.panelDimension
+        w, h = self.glyphSize
+        padding = self.glyphPadding
+        panelWidth = (rowLength-1) * (w + padding) + w + DEFAULT_PANEL_PADDING*2
+        panelHeight = (rowCount-1) * (h+padding) + h + DEFAULT_PANEL_PADDING*2
+        return panelWidth, panelHeight
+
     def draw(self, canvas, time):
 
-        # retrieve Glyph size
-        glyphWidth, glyphHeight = self.getGlyphSize()
-
-        # retrieve size
-        rowLength, rowCount = self.panelSize
-
-        # retrieve padding
-        padding = self.glyphPadding
-
-        panelWidth = (rowLength - 1) * (glyphWidth+padding) + glyphWidth
-        panelHeight = (rowCount-1) * (glyphHeight+padding) + glyphHeight
+        panelWidth, panelHeight = self.getSize()
 
         canvasWidth, canvasHeight = canvas.getSize()
 
-        x0 , y0 = (canvasWidth-panelWidth) // 2 , (canvasHeight-panelHeight) //2
+        (glyphWidth, glyphHeight),padding = self.glyphSize, self.glyphPadding
 
-
+        #x0 , y0 = (canvasWidth-panelWidth) // 2 , (canvasHeight-panelHeight) // 2
+        x0,y0= DEFAULT_PANEL_PADDING, DEFAULT_PANEL_PADDING
+        
+        # draw all glyphs
         for row, rowGlyphPort in enumerate(self.glyphPorts):
             for col, glyphPort in enumerate(rowGlyphPort):
                 x1 , y1 = x0+col*(glyphWidth+padding), y0+row*(glyphHeight+padding)
@@ -571,7 +573,7 @@ class SolariApp(GraphicApp):
             glyphSet=self.glyphSet,
             glyphSize=glyphSize, 
             glyphPadding=glyphPadding,
-            panelSize=panelSize, 
+            panelDimension=panelSize, 
             portRotationSpeed=portRotationSpeed,
             portRefreshLapse=portRefreshLapse,
             sound=sound)
@@ -585,7 +587,7 @@ class SolariApp(GraphicApp):
 
         now = datetime.datetime.now()
 
-        rowLength, rowCount = self.panel.panelSize
+        rowLength, rowCount = self.panel.panelDimension
 
         def fmtTime(dt):
             return f"{dt.hour:0>2}h{dt.minute:0>2}".rjust(rowLength)
@@ -613,7 +615,7 @@ class SolariApp(GraphicApp):
             '''
             message = "/".join(self.textParser.readNextBlock())
             '''    
-            self.panel.refresh(message)
+            self.panel.updateText(message)
             
 
         self.panel.draw(canvas, time)

@@ -2,7 +2,6 @@ import grabst
 
 import kivy
 import kivy.app
-import kivy.uix.widget
 import kivy.graphics
 import kivy.graphics.texture
 import kivy.clock
@@ -31,21 +30,33 @@ class KiviGraphicInterface(grabst.GraphicInterface):
                     # clear the Kivy object canvas
                     kivyCanvas.clear()
 
-                    scaleFactor = 1.0
-
                     with kivyCanvas:
 
                         kivy.graphics.PushMatrix()
-                        self.kivi_app.scale=kivy.graphics.Scale(scaleFactor)
 
+                        if sizeRequirement:
+                            width, height = root.size
+                            w,h = sizeRequirement
+                            f1 = width / w
+                            f2 = height / h
+                            f = min(f1,f2)
+                            if f1 > f2:
+                                # add horizontal padding
+                                padding = (width - w*f) / 2
+                                kivy.graphics.Translate(padding, 0, 0)
+                            else:
+                                # add vertical padding
+                                padding = (height - h*f) / 2
+                                kivy.graphics.Translate(0, padding, 0)                       
 
-                    # build a canvas on the fly based on kivy
-                    canvas = CanvasWrapperKivy(kivyCanvas=kivyCanvas, width=root.width, height=root.height)
-                    
-                    # call the drawing function of the graphic app
-                    drawFunction(canvas, timeStamp)
+                            kivy.graphics.Scale(f, f, 1.0)
 
-                    with kivyCanvas:
+                        # build a canvas on the fly based on kivy
+                        canvas = CanvasWrapperKivy(kivyCanvas=kivyCanvas)
+                        
+                        # call the drawing function of the graphic app
+                        drawFunction(canvas, timeStamp)
+                  
                         kivy.graphics.PopMatrix()
 
         kivy.clock.Clock.schedule_interval(update, 1.0 / framePerSecond)
@@ -73,11 +84,9 @@ class KiviGraphicInterface(grabst.GraphicInterface):
     
 class CanvasWrapperKivy(grabst.Canvas):
 
-    def __init__(self, kivyCanvas, width, height):
+    def __init__(self, kivyCanvas):
         super().__init__()
         self.kiwyCanvas = kivyCanvas
-        self.width = width
-        self.height = height
         self.currentColor = grabst.Palette.WHITE
 
     def _drawImage(self, image, x0, y0, rotation, verStretch, horStretch):
@@ -119,7 +128,8 @@ class CanvasWrapperKivy(grabst.Canvas):
         self.setColor(previous_color, 1.0)
     
     def _getSize(self):
-        return self.width, self.height
+        w=kivy.core.window.Window
+        return w.width, w.height
         
     # helper function
 

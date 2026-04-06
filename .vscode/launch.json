@@ -6,7 +6,7 @@
     "configurations": [
 
         {
-            "name":"Python Debugger: solari_run.py",
+            "name":"solari_run.py (Python debugger)",
             "type":"debugpy",
             "request":"launch",
             "program":"code/solari_run.py",
@@ -14,10 +14,10 @@
 
 
         {
-            "name": "Python Debugger: grport.py",
+            "name": "grdemo.py (Python debugger)",
             "type": "debugpy",
             "request": "launch",
-            "program": "code/grport.py",
+            "program": "code/grdemo.py",
             "console": "integratedTerminal"
         }
     ]
