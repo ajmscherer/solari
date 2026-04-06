@@ -26,6 +26,9 @@ class Palette:
     BLACK = Color('#000000')
     WHITE = Color('#FFFFFF')
     RED = Color('#FF0000')
+    BLUE = Color('#0000FF')
+    GREEN = Color('#00FF00')    
+    
 
     @staticmethod
     def custom(*args, **kwargs):
