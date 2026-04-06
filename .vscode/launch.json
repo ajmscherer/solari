@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name":"Python Debugger: solari_run.py",
+            "type":"debugpy",
+            "request":"launch",
+            "program":"code/solari_run.py",
+            "console":"integratedTerminal"},
+
+
+        {
+            "name": "Python Debugger: grport.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "code/grport.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}

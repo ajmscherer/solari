@@ -10,7 +10,66 @@ import kivy.core.window
 
 import datetime
 
+class KiviGraphicInterface(grabst.GraphicInterface):
 
+    def __init__(self):
+        self.kivi_app= kivy.app.App()
+
+    def start(self, drawFunction, sizeRequirement, framePerSecond):
+        
+        def update(timeInterval):
+
+            # get a timeStamp for the drawing request
+            timeStamp = datetime.datetime.now()
+
+            # retrieve the Kivy canvas
+            kivyCanvas = self.kivi_app.root.canvas if self.kivi_app.root else None
+
+            if kivyCanvas:
+
+                # clear the Kivy object canvas
+                kivyCanvas.clear()
+                
+                # retrieve actual size of the Widget
+                actualsizeSize = self.kivi_app.root.size if self.kivi_app.root else None
+                if actualsizeSize:
+                    width, height = actualsizeSize
+                else:
+                    width, height = sizeRequirement
+
+
+                # calculate scale factor based on required space
+                widthRequired, heightRequired = sizeRequirement
+                scaleFactor = min(width/widthRequired, height/heightRequired)
+
+                with kivyCanvas:
+
+                    kivy.graphics.PushMatrix()
+                    self.kivi_app.scale=kivy.graphics.Scale(scaleFactor)
+
+
+                # build a canvas on the fly based on kivy
+                canvas = CanvasWrapperKivy(kivyCanvas=kivyCanvas, width=width/scaleFactor, height=height/scaleFactor)
+                
+                # call the drawing function of the graphic app
+                drawFunction(canvas, timeStamp)
+
+                with kivyCanvas:
+                    kivy.graphics.PopMatrix()
+
+        kivy.clock.Clock.schedule_interval(update, 1.0 / framePerSecond)
+        
+        # set window size based on size requirement
+        window = kivy.core.window.Window
+        if sizeRequirement:
+            window.size = sizeRequirement 
+
+        self.kivi_app.run()
+        
+    def setTitle(self, title):
+        self.kivi_app.title = title
+
+    
 class CanvasWrapperKivy(grabst.Canvas):
 
     def __init__(self, kivyCanvas, width, height):
@@ -71,7 +130,8 @@ class CanvasWrapperKivy(grabst.Canvas):
             
 
 class KMainWidget(kivy.uix.widget.Widget):
-    def __init__(self, app:grabst.App, framePerSecond,  **kwargs):
+
+    def __init__(self, app, framePerSecond,  **kwargs):
         super(KMainWidget, self).__init__(**kwargs)
 
         # store drawingMethod
@@ -149,7 +209,7 @@ class KApp(kivy.app.App):
         # You can add logic here to handle window resize events if needed
         pass
 
-
+"""
 class KivyApp(grabst.App):
 
     def __init__(self, framePerSecond, sizeRequirement, title) -> None:
@@ -168,5 +228,5 @@ class KivyFactory(grabst.Factory):
 
 
 
-
+"""
     
