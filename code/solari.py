@@ -25,6 +25,8 @@ import math
 import unidecode
 from pathlib import Path
 
+from feeder import Feeder
+
 # Definition of constants
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,15 +37,15 @@ DEFAULT_SOURCE_TEXT_PATH = RESOURCES_DIR / "poeme.txt"
 DEFAULT_ROTATION_SPEED = 125  # time in milliseconds to go from one charactere to the next
 DEFAULT_FRAME_PER_SECOND = 24
 
-#DEFAULT_GLYPH_SIZE = 65,110
-#GLYPH_PADDING = 6
-#DEFAULT_FONT_SIZE = 80
+DEFAULT_GLYPH_SIZE = 30, 60,
+GLYPH_PADDING = 6
+DEFAULT_FONT_SIZE = 50
 
-DEFAULT_GLYPH_SIZE = 24,38
-GLYPH_PADDING = 3
-DEFAULT_FONT_SIZE = 30
+#DEFAULT_GLYPH_SIZE = 26,40
+#GLYPH_PADDING = 3
+#DEFAULT_FONT_SIZE = 32
 
-DEFAULT_PANEL_SIZE = 32 , 7
+DEFAULT_PANEL_SIZE = 30 , 7
 DEFAULT_PANEL_PADDING = 50
 DEFAULT_PORT_REFRESH_LAPSE = 10 # time in milliseconds for the panel to deal with one port to the next when refreshing 
 DEFAULT_SOUND = False
@@ -410,7 +412,27 @@ class GlyphPanel:
 
         lineSize, rowCount = self.panelDimension
 
-        lines = text.split("/")[:rowCount]
+        def g(t,pos=0):
+            if pos>=len(t):
+                return []
+            else:
+                a,b,c = t[:pos], t[pos], t[pos+1:]
+                b_lower = b.lower()
+                b_upper = b.upper()
+                t_lower = a+b_lower+c
+                t_upper = a+b_upper+c
+                
+                result = [t_lower,t_upper]
+                result.extend(g(t_lower,pos+1))
+                result.extend(g(t_upper,pos+1))     
+                result = list(set(result))           
+                return result
+        
+        br = "<br>"
+        for t in g(br):
+            text=text.replace(t,br)
+
+        lines = text.split(br)[:rowCount]
 
         extraSep = [''] * (rowCount-len(lines))
         lines += extraSep
@@ -444,6 +466,11 @@ class GlyphPanel:
         return panelWidth, panelHeight
 
     def draw(self, canvas, time):
+            self.drawPanel(canvas, time)
+            self.drawStatus(canvas, time)
+
+
+    def drawPanel(self, canvas, time):
 
         panelWidth, panelHeight = self.getSize()
 
@@ -453,7 +480,7 @@ class GlyphPanel:
 
         #x0 , y0 = (canvasWidth-panelWidth) // 2 , (canvasHeight-panelHeight) // 2
         x0,y0= DEFAULT_PANEL_PADDING, DEFAULT_PANEL_PADDING
-        
+
         # draw all glyphs
         for row, rowGlyphPort in enumerate(self.glyphPorts):
             for col, glyphPort in enumerate(rowGlyphPort):
@@ -461,6 +488,14 @@ class GlyphPanel:
                 canvasRelative = CanvasRelative(canvas,x1, y1)
                 glyphPort.draw(canvasRelative, time)
 
+    def drawStatus(self, canvas, time):
+        '''Draw status information on the panel'''
+        if (time.second // 2) % 2 == 0:
+            w,h = self.getSize()
+            w-= DEFAULT_PANEL_PADDING * 3 / 4
+            h-= DEFAULT_PANEL_PADDING + self.glyphSize[1] // 2
+            diam=1.5
+            canvas.drawCircle(w, h, diam, color=Palette.GREEN, width=diam)
 
 class TextParser:
 
@@ -537,6 +572,7 @@ class SolariApp(GraphicApp):
 
     def __init__(self, 
                  graphicInterface,
+                 feeder = Feeder.default(),
                  framePerSecond=DEFAULT_FRAME_PER_SECOND,
                  glyphSize=DEFAULT_GLYPH_SIZE,
                  fontSize = DEFAULT_FONT_SIZE,
@@ -545,13 +581,15 @@ class SolariApp(GraphicApp):
                  panelPadding = DEFAULT_PANEL_PADDING,
                  portRotationSpeed = DEFAULT_ROTATION_SPEED,
                  portRefreshLapse = DEFAULT_PORT_REFRESH_LAPSE,
-                 sourceTextPath = DEFAULT_SOURCE_TEXT_PATH,
                  sound = DEFAULT_SOUND,
                  ) -> None:
         
         # call ancestor constructor
         super().__init__(graphicInterface=graphicInterface, framePerSecond=framePerSecond)
         
+        # set feeder
+        self.feeder = feeder
+
         # set window title
         self.title = "Solari Board Simulator"
         self.graphicInterface.setTitle(self.title)
@@ -581,9 +619,24 @@ class SolariApp(GraphicApp):
         # init lifeflag
         self.lifeFlag = None
 
-        self.textParser = TextParser.loadFromFile(sourceTextPath,self.panel)
+        self.string_current = ""
 
     def draw(self, canvas, time):
+        
+        # get text from feeder
+        string = self.feeder.getString(time)
+
+        # update panel if string has changed
+        if string != self.string_current:
+            self.panel.updateText(string)
+            self.string_current = string
+
+        # draw panel
+        self.panel.draw(canvas, time)
+
+
+
+    def draw_old(self, canvas, time):
 
         now = datetime.datetime.now()
 
@@ -593,15 +646,15 @@ class SolariApp(GraphicApp):
             return f"{dt.hour:0>2}h{dt.minute:0>2}".rjust(rowLength)
 
         messages = [
-                    f'{"Miami".rjust(rowLength)}//{now.strftime("%a %b %d %Y")}//{fmtTime(now)}/HAVE A GOOD DAY!',
-                    'AF007 PARIS       16h30 GATE 23/'+\
-                    'LU032 MUNICH      19h15 GATE 14/'+\
-                    'AA588 ZURICH      21h12 GATE 42/'+\
-                    'IB912 MADRID      22h54 GATE 04/'+\
-                    'RA912 BUCHAREST   22h58 GATE 11/'+\
-                    'TP126 LISBON      22h58 GATE 11/'+\
-                    'LU321 ROTTERDAM   23h14 GATE 31/',
-                    f'{"Welcome".rjust(rowLength)}//{fmtTime(now)}//TO THE SOLARI BOARD SIMULATOR',
+                    f'{"Miami".rjust(rowLength)}<br><br>{now.strftime("%a %b %d %Y")}<br><br>{fmtTime(now)}<br>HAVE A GOOD DAY!',
+                    'AF007 PARIS       16h30 GATE 23<br>'+\
+                    'LU032 MUNICH      19h15 GATE 14<br>'+\
+                    'AA588 ZURICH      21h12 GATE 42<br>'+\
+                    'IB912 MADRID      22h54 GATE 04<br>'+\
+                    'RA912 BUCHAREST   22h58 GATE 11<br>'+\
+                    'TP126 LISBON      22h58 GATE 11<br>'+\
+                    'LU321 ROTTERDAM   23h14 GATE 31<br>',
+                    f'{"Welcome".rjust(rowLength)}<br><br>{fmtTime(now)}<br><br>TO THE SOLARI BOARD SIMULATOR',
                            ]
 
         life = ( time - self.panel.panelStartTime).seconds
