@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import re
+import math
 
 BYTEPATTERN = '[0-9A-F][0-9A-F]'
 COLORHEXAPATTERN = re.compile(f'#({BYTEPATTERN})({BYTEPATTERN})({BYTEPATTERN})')
@@ -45,6 +46,21 @@ class Canvas(ABC):
         self._drawLine(x1, y1, x0,y1,width,color, opacity)
         self._drawLine(x0, y1, x0,y0,width,color, opacity)
 
+    def drawCircle(self, x0, y0, radius, width=1, color=Palette.WHITE, opacity = 1.0):
+        # approximate the circle with a polygon of 20 sides
+        sides = 20
+        angleStep = 360 / sides
+        points = []
+        for i in range(sides):
+            angle = i * angleStep
+            x = x0 + radius * math.cos(math.radians(angle))
+            y = y0 + radius * math.sin(math.radians(angle))
+            points.append((x, y))
+        for i in range(sides):
+            x1, y1 = points[i]
+            x2, y2 = points[(i + 1) % sides]
+            self._drawLine(x1, y1, x2, y2, width, color, opacity)
+
     def drawImage(self, image, x0=0, y0=0, rotation=0, verStretch=1.0, horStretch=1.0):
         self._drawImage(image=image,x0=x0, y0=y0, rotation=rotation, verStretch=verStretch, horStretch=horStretch)
 
@@ -58,6 +74,7 @@ class Canvas(ABC):
     @abstractmethod
     def _drawLine(self, x0, y0, x1, y1, width, color, opacity):
         pass
+
     @abstractmethod
     def _drawImage(self, image, x0, y0, rotation, verStretch, horStretch):
         '''Draw image'''
