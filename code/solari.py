@@ -23,14 +23,13 @@ from enum import Enum, auto
 import math
 
 import unidecode
-from pathlib import Path
 
 from feeder import Feeder
 
+from common import RESOURCES_DIR
+
 # Definition of constants
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-RESOURCES_DIR = BASE_DIR / "resources"
 
 DEFAULT_SOURCE_TEXT_PATH = RESOURCES_DIR / "poeme.txt"
 
