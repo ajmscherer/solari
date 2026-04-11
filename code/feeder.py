@@ -1,9 +1,9 @@
 from abc import  abstractmethod
-
+from infofetch import InfoFetcher
 class Feeder:
 
     @abstractmethod
-    def getString(self, time):
+    def getString(self, time) ->str:
         '''Get a string to display on the main window. This method is called by the graphic app. The time parameter is a datetime object that represents the current time.'''
         
     @staticmethod
@@ -42,7 +42,30 @@ class FeederStatic(Feeder):
         string = strings[pos % len(strings)]
 
         return string
-    
+
+class FeederInfo(Feeder):
+
+    def __init__(self, fetcher: InfoFetcher, rotationTime=30, colWidth=30) -> None:
+        super().__init__()
+        self.fetcher = fetcher
+        self.rotationTime = rotationTime
+        self.colWidth = colWidth
+        self.time0 = None
+
+    def getString(self, time):
+        info = self.fetcher.as_list()
+        infoCount = len(info)
+
+        if not self.time0:
+            self.time0 = time
+
+        i = (time - self.time0).seconds
+        pos = (i // self.rotationTime ) % infoCount
+
+        solariText = self.fetcher.toSolari(info[pos], self.colWidth)
+
+        return solariText
+
 def buildCharMap(panelSize, startchar=32, lastchar=126):
     '''Build a character map for the Solari board. The character map is a dictionary that maps characters to their corresponding bitmaps. The bitmaps are represented as lists of integers, where each integer represents a line of the bitmap. The lineSize parameter is the number of characters per line in the bitmap. The startchar and lastchar parameters define the range of characters to include in the character map.
         -lineSize: the number of characters per line in the bitmap. The default is 40, which means that the bitmap will have 40 characters per line.
