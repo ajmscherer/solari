@@ -1,6 +1,4 @@
 from pathlib import Path
-import schedule
-from threading import Thread
 import os
 import feedparser
 import time
@@ -9,15 +7,15 @@ import hashlib
 import pytz
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
-from common import CACHE_DIR, PROMPT_DIR
+from common import CACHE_DIR, PROMPT_DIR, convertDate, ValueRotation, Scheduler
 import json
-
 import logging
-
 
 import xai_sdk as xai
 import xai_sdk.chat as xai_chat
 import xai_sdk.tools as xai_tools
+
+from common import time_to_seconds
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -38,80 +36,19 @@ REFRESH_CYCLE = 30 # in minutes
 
 LOCAL_TIME_ZONE = "US/Eastern"
 
-class Scheduler:
-
-    def __init__(self, targetFunction,  interval, limit = None) -> None:
-        '''
-        - targetFunction : function or method to be called
-        - interval : number of minutes between two calls of targetFunction
-        - limit: number of calls to target method (None = infinite number of calls)
-        '''
-
-        assert(limit is None or limit > 0)
-        self.targetFunction = targetFunction
-        self.interval = interval
-        self.limit = limit
-        self.running = False
-
-    def start(self):
-        self.running = True
-        logging.info(f"Scheduler {self} started")
-
-        self.counter = 0
-
-        def target():
-            self.counter +=1
-                
-            # log update
-            linfo = f"Scheduler {self} calls {self.targetFunction} #{self.counter}"
-            if self.limit:
-                linfo += f" OF {self.limit}"
-            logging.info(linfo)
-
-            self.targetFunction()
-
-            if self.limit: 
-                if self.counter == self.limit:
-                    self.stop()
-                    
-
-        # start targetFunction immediately
-        target()
-
-        # schedule calls to targetFunction every refresh_cycle
-        schedule.every(self.interval).minutes.do(target)
-        
-        def run_scheduler():
-            while self.running:
-                schedule.run_pending()
-                time.sleep(1)
-        
-        thread = Thread(target=run_scheduler, daemon=True)
-        thread.start()
-    
-    def stop(self):
-        self.running = False
-        logging.info(f"Scheduler {self} stopped")
 
 
-class ValueRotation:
+class Message:
 
-    def __init__(self, source) -> None:
-        ''' source : list of object '''
-        self.source = source
-        self.index = 0
+    def __init__(self, text, displayTime:str = '30 seconds', link:str="" ) -> None:
+        self.text = text
+        self.displayTimeInSeconds = time_to_seconds(displayTime) # convert string to seconds
+        self.link = link
 
-    def next(self):
-        data = self.source.as_list()
-        length = len (data)
-        if length>0:
-            result= data[self.index % length]
-        else:
-            result = None
-        self.index +=1
+    def copy(self):
+        displayTime = f"{self.displayTimeInSeconds} seconds"
+        return Message(self.text, displayTime, self.link)
 
-        return result
-    
 class InfoFetcher(ABC):
 
     def __init__(self) -> None:
@@ -122,14 +59,14 @@ class InfoFetcher(ABC):
         self.info =[]
         self._vrotation = ValueRotation(self)
 
-    def as_list(self):
+    def getInfo(self):
         return self.info
     
     def next(self):
         return self._vrotation.next()
 
-    def toSolari(self, record:dict, colWidth:int) -> str:
-        return "need override"
+    def asMessage(self, record:dict, colWidth:int) -> Message:
+        return Message("needs override")
 
     def setCacheUsageFlag(self, flag):
         self._useCache = flag in [True,'on', 'ON']
@@ -352,8 +289,8 @@ class NewsFetcher_TASS(InfoFetcher):
     def _getRecordDate(self, record):
         return record['published']
 
-    def toSolari(self, record, colWidth=40):
-        source, title, summary, published = [record[field] for field in ('source', 'title', 'summary', 'published')]
+    def asMessage(self, record, colWidth=40):
+        source, title, summary, published, link = [record[field] for field in ('source', 'title', 'summary', 'published', 'link')]
         tstamp = published[:-3]
         FirstLine = f"{tstamp}{source: >{colWidth-len(tstamp)}}"
         TitleLine = "<br>".join(textwrap.wrap(title, width=colWidth))
@@ -363,39 +300,9 @@ class NewsFetcher_TASS(InfoFetcher):
         solari = solari.replace("’", "'")
 
 
-        return solari
+        return Message(solari, '30 seconds', link)
     
-''' Helper function'''
 
-def convertDate(date:datetime):
-    return date.strftime("%Y.%m.%d %H:%M:%S")
-
-def parseGMDDatetime(string, localTimeZone):
-    # Step 1: Parse the GMT string into a naive datetime object
-    gmt_string = "2026/04/09 23:15:00"
-    dt_naive = datetime.strptime(gmt_string, "%Y/%m/%d %H:%M:%S")
-
-    # Step 2: Localize it to UTC (since it's GMT)
-    utc = pytz.UTC
-    dt_utc = utc.localize(dt_naive)
-
-    # Step 3: Convert to Miami's local time (Eastern Time)
-    local = pytz.timezone(localTimeZone)
-    dt_local = dt_utc.astimezone(local)
-
-    # Now dt_miami is a timezone-aware datetime object in Miami's local time
-    return dt_local
-
-def getPromt(filename:str):
-    extension = ".txt"
-    if not filename.endswith(extension):
-        filename = filename + extension
-    return (PROMPT_DIR / filename).read_text()
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
 
 
 ''' tests '''
@@ -414,7 +321,7 @@ def testFetcher():
     while fetcher2.isrunning():
         record = fetcher2.next()
         if record:
-            solariText = fetcher2.toSolari(record)
+            solariText = fetcher2.asMessage(record)
             logging.info(f'SOLARI : {solariText} ')
         time.sleep(5)
 

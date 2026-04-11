@@ -15,7 +15,7 @@ if __name__ == "__main__":
     fetcher = NewsFetcher_TASS()
     fetcher.start()
 
-    feeder = FeederInfo(fetcher, rotationTime=30, colWidth=panelSize[0])
+    feeder = FeederInfo(fetcher, colWidth=panelSize[0])
     
     # create the SolariApp
     solari = SolariApp(graphicInterface=kiviInterface,feeder=feeder, panelSize=panelSize)

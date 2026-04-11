@@ -12,7 +12,7 @@ import PIL.ImageFont
 
 import simpleaudio
 import threading
-
+import logging
 import random
 
 from grabst import CanvasRelative, GraphicApp, Palette
@@ -24,21 +24,19 @@ import math
 
 import unidecode
 
-from feeder import Feeder
+from feeder import Feeder, Message
 
 from common import RESOURCES_DIR
 
 # Definition of constants
 
 
-DEFAULT_SOURCE_TEXT_PATH = RESOURCES_DIR / "poeme.txt"
-
 DEFAULT_ROTATION_SPEED = 125  # time in milliseconds to go from one charactere to the next
 DEFAULT_FRAME_PER_SECOND = 24
 
-DEFAULT_GLYPH_SIZE = 30, 60,
+DEFAULT_GLYPH_SIZE = 35, 60,
 GLYPH_PADDING = 6
-DEFAULT_FONT_SIZE = 45
+DEFAULT_FONT_SIZE = 42
 
 #DEFAULT_GLYPH_SIZE = 26,40
 #GLYPH_PADDING = 3
@@ -618,17 +616,33 @@ class SolariApp(GraphicApp):
         # init lifeflag
         self.lifeFlag = None
 
-        self.string_current = ""
+        self.message0 = Message('')
+
+        # initiate cycling messages from feeder
+        self._cycle()
+
+    def _cycle(self):
+
+        # obtain next message from the feeded
+        self.feeder.next()
+        message = self.feeder.getMessage()
+
+        # logging
+        logging.info('SolariApp request new message to display from feeder')
+
+        # have the method call each other again for the next message to display
+        threading.Timer(message.displayTimeInSeconds, self._cycle).start()
+
 
     def draw(self, canvas, time):
         
         # get text from feeder
-        string = self.feeder.getString(time)
+        message = self.feeder.getMessage()
 
         # update panel if string has changed
-        if string != self.string_current:
-            self.panel.updateText(string)
-            self.string_current = string
+        if message.text != self.message0.text:
+            self.panel.updateText(message.text)
+            self.message0 = message.copy()
 
         # draw panel
         self.panel.draw(canvas, time)
