@@ -1,4 +1,5 @@
-from feeder import Feeder
+from feeder import FeederInfo
+from infofetch import NewsFetcher_TASS
 from grkivy import KiviGraphicInterface
 from solari import DEFAULT_PANEL_SIZE, SolariApp
 
@@ -9,10 +10,15 @@ if __name__ == "__main__":
     kiviInterface = KiviGraphicInterface()
 
     panelSize = DEFAULT_PANEL_SIZE
-    charmap = Feeder.charmap(panelSize=panelSize)
 
+    # create fetcher
+    fetcher = NewsFetcher_TASS()
+    fetcher.start()
+
+    feeder = FeederInfo(fetcher, rotationTime=30, colWidth=panelSize[0])
+    
     # create the SolariApp
-    solari = SolariApp(graphicInterface=kiviInterface,feeder=Feeder.charmap(panelSize=panelSize), panelSize=panelSize)
+    solari = SolariApp(graphicInterface=kiviInterface,feeder=feeder, panelSize=panelSize)
 
     # run the app
     solari.run()

@@ -38,7 +38,7 @@ DEFAULT_FRAME_PER_SECOND = 24
 
 DEFAULT_GLYPH_SIZE = 30, 60,
 GLYPH_PADDING = 6
-DEFAULT_FONT_SIZE = 50
+DEFAULT_FONT_SIZE = 45
 
 #DEFAULT_GLYPH_SIZE = 26,40
 #GLYPH_PADDING = 3
@@ -571,7 +571,7 @@ class SolariApp(GraphicApp):
 
     def __init__(self, 
                  graphicInterface,
-                 feeder = Feeder.default(),
+                 feeder:Feeder = Feeder.default(),
                  framePerSecond=DEFAULT_FRAME_PER_SECOND,
                  glyphSize=DEFAULT_GLYPH_SIZE,
                  fontSize = DEFAULT_FONT_SIZE,
