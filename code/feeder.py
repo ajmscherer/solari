@@ -1,70 +1,80 @@
 from abc import  abstractmethod
-from infofetch import InfoFetcher
+from infofetch import Message, InfoFetcher
+import logging
+
 class Feeder:
 
+    def __init__(self) -> None:
+        self._message = Message("Welcome to Solari Panel")
+
+    def getMessage(self):
+        return self._message
+
+    def next(self):
+        self._message = self._getNextMessage()
+    
     @abstractmethod
-    def getString(self, time) ->str:
-        '''Get a string to display on the main window. This method is called by the graphic app. The time parameter is a datetime object that represents the current time.'''
-        
+    def _getNextMessage(self)->Message:
+        '''to be ovridden. form next message'''
+
     @staticmethod
     def default():
         '''Return a default feeder that returns a static string.'''
 
         return FeederStatic(['Hello World!', '<br>Welcome to<br>  the Solari Board Simulator', '<br><br>Have a nice day!'], 
-                            rotationTime=15)
+                            rotationTime='15 seconds')
 
     @staticmethod
     def charmap(panelSize, startchar=32, lastchar=126):
         '''Return a feeder that returns a character map. The character map is a string that contains the characters from startchar to lastchar, arranged in a grid of columns and rows. The character map is rotated every rotationTime seconds. The default rotation time is 40 seconds.'''
 
-        return FeederStatic(buildCharMap(panelSize=panelSize, startchar=startchar, lastchar=lastchar), rotationTime=40)
+        return FeederStatic(buildCharMap(panelSize=panelSize, startchar=startchar, lastchar=lastchar), rotationTime='40 seconds')
 
 class FeederStatic(Feeder):
 
-    def __init__(self, strings, rotationTime=40):
+    def __init__(self, contents, rotationTime='40 seconds'):
         '''A feeder that returns a static string. The string can be rotated every rotationTime seconds.
-         - strings: a list of strings to rotate through. If the list is empty, the feeder will return an empty string. If the list has one element, the feeder will return that element. If the list has more than one element, the feeder will rotate through the elements every rotationTime seconds.
+         - contents: a list of strings to rotate through. If the list is empty, the feeder will return an empty string. If the list has one element, the feeder will return that element. If the list has more than one element, the feeder will rotate through the elements every rotationTime seconds.
          - rotationTime: the time in seconds to rotate through the strings.
         '''
+        super().__init__()
         self.rotationTime = rotationTime
-        self.strings = strings
-        self.time0 = None
-
-
-    def getString(self, time):
-
-        if self.time0 is None:
-            self.time0 = time
+        self.contents = contents
+        self.pos = 0
+        if len(contents)<1:
+            logging.error('contents is a list that must contain at least one string')
+            self.contents = ['no list provided for FeederStatic']
         
-        strings = self.strings
-        sec = (time-self.time0).seconds
-        pos = sec // self.rotationTime
-        string = strings[pos % len(strings)]
 
-        return string
+
+
+    def _getNextMessage(self) -> Message:
+
+        strings = self.contents
+        text = strings[self.pos % len(strings)]
+        self.pos += 1
+
+        return Message(text, self.rotationTime)
 
 class FeederInfo(Feeder):
 
-    def __init__(self, fetcher: InfoFetcher, rotationTime=30, colWidth=30) -> None:
+    def __init__(self, fetcher: InfoFetcher, colWidth=30) -> None:
         super().__init__()
         self.fetcher = fetcher
-        self.rotationTime = rotationTime
         self.colWidth = colWidth
-        self.time0 = None
+        self.pos = 0
 
-    def getString(self, time):
-        info = self.fetcher.as_list()
+    def _getNextMessage(self) -> Message:
+
+        info = self.fetcher.getInfo()
         infoCount = len(info)
+        pos = self.pos % infoCount
 
-        if not self.time0:
-            self.time0 = time
+        message = self.fetcher.asMessage(info[pos], self.colWidth)
 
-        i = (time - self.time0).seconds
-        pos = (i // self.rotationTime ) % infoCount
+        self.pos += 1
 
-        solariText = self.fetcher.toSolari(info[pos], self.colWidth)
-
-        return solariText
+        return message
 
 def buildCharMap(panelSize, startchar=32, lastchar=126):
     '''Build a character map for the Solari board. The character map is a dictionary that maps characters to their corresponding bitmaps. The bitmaps are represented as lists of integers, where each integer represents a line of the bitmap. The lineSize parameter is the number of characters per line in the bitmap. The startchar and lastchar parameters define the range of characters to include in the character map.
