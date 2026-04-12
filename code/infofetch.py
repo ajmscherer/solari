@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 import os
 import feedparser
@@ -20,8 +21,13 @@ from common import time_to_seconds
 from dotenv import load_dotenv
 load_dotenv()
 
+class NewsSource(Enum):
+    BBC= ("http://feeds.bbci.co.uk/news/rss.xml","Europe/London")
+    ALJAZEERA= ("https://www.aljazeera.com/xml/rss/all.xml", "Europe/London")
+    FRANCE24= ("https://www.france24.com/en/rss", "Europe/Paris")
+    TASS= ("https://tass.com/rss/v2.xml", "Europe/Moscow")
+
 # TASS RSS feed URL 
-TASS_RSS_URL = "https://tass.com/rss/v2.xml"
 AP_NEWS_URL = "https://apnews.com/index.rss"
 MOSCOW_TIME_RSS_URL = "https://www.themoscowtimes.com/rss/news"
 XAI_NEWS_RSS_URL = "https://api.x.ai/v1"  # Placeholder URL for XAI news feed
@@ -51,9 +57,10 @@ class Message:
 
 class InfoFetcher(ABC):
 
-    def __init__(self) -> None:
+    def __init__(self, sourceName) -> None:
         super().__init__()
         self.setCacheUsageFlag(False)
+        self.sourceName = sourceName
         self._started = False
         self._scheduler = None
         self.info =[]
@@ -62,6 +69,9 @@ class InfoFetcher(ABC):
     def getInfo(self):
         return self.info
     
+    def as_list(self):
+        return self.getInfo()
+
     def next(self):
         return self._vrotation.next()
 
@@ -134,9 +144,12 @@ class InfoFetcher(ABC):
         # get class name
         className = self._getClassName()
 
+        # build prefix
+        prefix = f"{className}_{self.sourceName}"
+
         # save two files: with with name showing timestamp and one with name showing current
         for param in [now, 'current']:
-            file_name = INFO_CACHE_FILE_NAME.format(className, param)
+            file_name = INFO_CACHE_FILE_NAME.format(prefix, param)
             path = Path(CACHE_DIR / file_name)
             path.write_text(json.dumps(info, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -156,7 +169,7 @@ class InfoFetcher(ABC):
 class InfoFetcher_xAI(InfoFetcher):
 
     def __init__(self, API_key, model, promptInitial, PromptRefresh="Refresh please") -> None:
-        super().__init__()
+        super().__init__('xAI')
         self.API_key = API_key
         self.model = model
         self.promptInitial = promptInitial
@@ -218,7 +231,37 @@ class InfoFetcher_xAI(InfoFetcher):
 
         return response.content
 
-class NewsFetcher_TASS(InfoFetcher):
+class NewsFetcher(InfoFetcher):
+
+    _catalog = {}
+
+    @staticmethod
+    def find(item):
+
+        catalog = NewsFetcher._catalog
+        ns_members = NewsSource.__members__
+
+        if item in NewsSource:
+            news_name = item.name
+        else:
+            if item not in ns_members:
+                logging.error(f"item '{item}' not in NewsSource")
+                raise Exception()
+            news_name = item
+        
+        # builde catalog
+        if news_name not in catalog:
+            url, timeZone = ns_members[news_name].value
+            catalog[news_name] = NewsFetcher(url, news_name, timeZone)
+
+        return catalog[news_name]
+
+    
+    def __init__(self, rss_url, sourceName, sourceTimeZone) -> None:
+
+        super().__init__(sourceName=sourceName)
+        self.rss_url = rss_url
+        self.sourceTimeZone = sourceTimeZone
 
     def _prepare(self):
         pass
@@ -231,12 +274,12 @@ class NewsFetcher_TASS(InfoFetcher):
         
         # fetch request timestamp
         frt = datetime.now(timezone.utc)
-        moscow_tz = pytz.timezone("Europe/Moscow")
+        source_tz = pytz.timezone(self.sourceTimeZone)
 
         news = []
 
         try:
-            feed = feedparser.parse(TASS_RSS_URL)
+            feed = feedparser.parse(self.rss_url)
             
             if feed.bozo:  # Feed has parsing issues
                 logging.warning("Feed parsing issues detected.")
@@ -254,8 +297,8 @@ class NewsFetcher_TASS(InfoFetcher):
                     year, month, day, hour, minute, second = [ published0.__getattribute__(field) for field in ['tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec'] ]
                     published0 = datetime(year=year, month=month, day=day,
                                             hour=hour, minute=minute, second=second)
-                    published_moscow = moscow_tz.localize(published0)
-                    published = published_moscow.astimezone(timezone.utc)
+                    published_local = source_tz.localize(published0)
+                    published = published_local.astimezone(timezone.utc)
 
 
                 else:
@@ -273,7 +316,7 @@ class NewsFetcher_TASS(InfoFetcher):
                     'summary': summary,
                     'link': news_entry.link,
                     'published': convertDate(published),
-                    'source': 'TASS',
+                    'source': self.sourceName,
                     'fetcher': self._getClassName(),
                     'fetched_timestamp': convertDate(frt),
                     'id': item_id
@@ -291,7 +334,10 @@ class NewsFetcher_TASS(InfoFetcher):
 
     def asMessage(self, record, colWidth=40):
         source, title, summary, published, link = [record[field] for field in ('source', 'title', 'summary', 'published', 'link')]
-        tstamp = published[:-3]
+        
+        dt =  datetime.strptime(published, "%Y.%m.%d %H:%M:%S")
+        tstamp = f"{dt.strftime('%b').upper()} {dt.day}  {dt.strftime('%H')}H{dt.strftime('%M')}"
+
         FirstLine = f"{tstamp}{source: >{colWidth-len(tstamp)}}"
         TitleLine = "<br>".join(textwrap.wrap(title, width=colWidth))
 
@@ -314,14 +360,14 @@ def testFetcher():
                                 promptInitial=pr0)
     fetcher1.setCacheUsageFlag(True)
 
-    fetcher2 = NewsFetcher_TASS()
+    fetcher2 = NewsFetcher.find(NewsSource.ALJAZEERA)
     
     fetcher2.start(interval=1, limit=2)
 
     while fetcher2.isrunning():
         record = fetcher2.next()
         if record:
-            solariText = fetcher2.asMessage(record)
+            solariText = fetcher2.asMessage(record).text
             logging.info(f'SOLARI : {solariText} ')
         time.sleep(5)
 
