@@ -1,5 +1,5 @@
 from abc import  abstractmethod
-from infofetch import Message, InfoFetcher
+from infofetch import Message, InfoFetcher, NewsFetcher
 import logging
 
 class Feeder:
@@ -58,6 +58,12 @@ class FeederStatic(Feeder):
 
 class FeederInfo(Feeder):
 
+    @staticmethod
+    def buildFromNewsSource(news_source, colWidth):
+        newsFetcher = NewsFetcher.find(news_source)
+        newsFetcher.start()
+        return FeederInfo(fetcher=newsFetcher, colWidth=colWidth)
+
     def __init__(self, fetcher: InfoFetcher, colWidth=30) -> None:
         super().__init__()
         self.fetcher = fetcher
@@ -75,6 +81,31 @@ class FeederInfo(Feeder):
         self.pos += 1
 
         return message
+
+class FeederMix(Feeder):
+    
+    @staticmethod
+    def buildFromNewsSource(news_sources, colWidth):
+        if isinstance(news_sources, str):
+            news_sources = news_sources.split(",")
+        feeders = []
+        for news_source in news_sources:
+            feeder = FeederInfo.buildFromNewsSource(news_source= news_source, colWidth=colWidth )
+            feeders.append(feeder)
+
+        return FeederMix(feeders=feeders)
+
+    def __init__(self, feeders) -> None:
+        super().__init__()
+        self.feeders = feeders
+        self.pos = 0
+    
+    def _getNextMessage(self) -> Message:
+        feeders = self.feeders
+        feederCount = len(feeders)
+        selectedFeeder = feeders[self.pos % feederCount]
+        self.pos +=1
+        return selectedFeeder._getNextMessage()
 
 def buildCharMap(panelSize, startchar=32, lastchar=126):
     '''Build a character map for the Solari board. The character map is a dictionary that maps characters to their corresponding bitmaps. The bitmaps are represented as lists of integers, where each integer represents a line of the bitmap. The lineSize parameter is the number of characters per line in the bitmap. The startchar and lastchar parameters define the range of characters to include in the character map.
