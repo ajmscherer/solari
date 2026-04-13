@@ -59,15 +59,15 @@ class FeederStatic(Feeder):
 class FeederInfo(Feeder):
 
     @staticmethod
-    def buildFromNewsSource(news_source, colWidth):
+    def buildFromNewsSource(news_source, panelSize:tuple[int,int]):
         newsFetcher = NewsFetcher.find(news_source)
         newsFetcher.start()
-        return FeederInfo(fetcher=newsFetcher, colWidth=colWidth)
+        return FeederInfo(fetcher=newsFetcher, panelSize=panelSize)
 
-    def __init__(self, fetcher: InfoFetcher, colWidth=30) -> None:
+    def __init__(self, fetcher: InfoFetcher, panelSize:tuple[int,int]) -> None:
         super().__init__()
         self.fetcher = fetcher
-        self.colWidth = colWidth
+        self.panelSize = panelSize
         self.pos = 0
 
     def _getNextMessage(self) -> Message:
@@ -78,7 +78,7 @@ class FeederInfo(Feeder):
 
         record = self.fetcher.next()
 
-        message = self.fetcher.asMessage(record, self.colWidth)
+        message = self.fetcher.asMessage(record, self.panelSize)
 
         self.pos += 1
 
@@ -87,12 +87,12 @@ class FeederInfo(Feeder):
 class FeederMix(Feeder):
     
     @staticmethod
-    def buildFromNewsSource(news_sources, colWidth):
+    def buildFromNewsSource(news_sources, panelSize:tuple[int,int]):
         if isinstance(news_sources, str):
             news_sources = news_sources.split(",")
         feeders = []
         for news_source in news_sources:
-            feeder = FeederInfo.buildFromNewsSource(news_source= news_source, colWidth=colWidth )
+            feeder = FeederInfo.buildFromNewsSource(news_source= news_source, panelSize=panelSize )
             feeders.append(feeder)
 
         return FeederMix(feeders=feeders)
