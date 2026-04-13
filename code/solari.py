@@ -23,7 +23,7 @@ import datetime
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 import math
-
+import webbrowser
 
 from feeder import Feeder, Message
 
@@ -562,16 +562,43 @@ class SolariApp(GraphicApp):
         # init lifeflag
         self.lifeFlag = None
 
+
+        self.graphicInterface.onKeyEvent.bind(self._on_keyboard)
+
         self.message0 = Message('')
+        self.link=None
+
+
 
         # initiate cycling messages from feeder
         self._cycle()
+
+    def _on_keyboard(self, key, scancode, codepoint, modifier):
+        '''Handle keyboard events. Press 'f' to toggle fullscreen mode.'''
+        
+        if codepoint == 'f':
+            self.graphicInterface.toggleFullScreen()
+            return True
+        
+        elif codepoint == 'l':
+            url = self.link            
+            if not url:
+                logging.error('No link to open')
+                return False
+            logging.info(f"Opening link {url} in browser")
+            webbrowser.open(url)
+            return True
+        
+        return False
 
     def _cycle(self):
 
         # obtain next message from the feeded
         self.feeder.next()
+        
+        # get message from feeder and update link to display
         message = self.feeder.getMessage()
+        self.link = message.link
 
         # logging
         logging.info('SolariApp request new message to display from feeder')

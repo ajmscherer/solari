@@ -56,7 +56,7 @@ class Message:
     A message to be displayed on the panel. It is defined by its text, the time it should be displayed and an optional link. The time to display is defined in seconds and can be converted from a string format (e.g. "30 seconds", "1 minute", "2 hours") using the time_to_seconds function. The link is optional and can be used to provide more information about the message. The message can be copied using the copy method, which creates a new message with the same text, display time and link.
     '''
 
-    def __init__(self, text, displayTime:str = '30 seconds', link:str="" ) -> None:
+    def __init__(self, text, displayTime:str = '30 seconds', link:str="", fetcher=None ) -> None:
         '''text: the text to display on the panel
         displayTime: the time to display the message on the panel, defined in seconds or in a string format (e.g. "30 seconds", "1 minute", "2 hours") that can be converted to seconds using the time_to_seconds function'''
         self.text = text
@@ -94,6 +94,10 @@ class InfoFetcher(ABC):
         if len(recentInfo)==0:
             logging.warning(f"No recent info found for {self.sourceName} in the last {self.timeWindowSeconds} seconds.")
             recentInfo = [{'published': datetime.now(timezone.utc).isoformat(), 'title': 'No recent news', 'summary': 'No recent news', 'link': '', 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
+
+        # sort by published date, most recent first
+        recentInfo.sort(key=self._getRecordDate, reverse=True)
+
         return recentInfo           
         
 
@@ -388,7 +392,7 @@ class NewsFetcher(InfoFetcher):
         lines[-1] = BottomLine+ " "*m + source
         solari= '<br>'.join(lines)
 
-        return Message(solari, '15 seconds', link)
+        return Message(text=solari, displayTime='30 seconds', link=link, fetcher=self)
     
 
 
