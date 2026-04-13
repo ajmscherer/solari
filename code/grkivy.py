@@ -12,6 +12,7 @@ import datetime
 class KiviGraphicInterface(grabst.GraphicInterface):
 
     def __init__(self):
+        super().__init__()
         self.kivi_app= kivy.app.App()
 
     def start(self, drawFunction, sizeRequirement, framePerSecond):
@@ -67,18 +68,16 @@ class KiviGraphicInterface(grabst.GraphicInterface):
             window.size = sizeRequirement 
 
         # bind keyboard events
-        kivy.core.window.Window.bind(on_key_down=self.on_keyboard)
+        kivy.core.window.Window.bind(on_key_down=self._on_keyboard)
 
         self.kivi_app.run()
 
-        pass
-    
-    def on_keyboard(self, window, key, scancode, codepoint, modifier):
-        # press 'f' to toggle fullscreen
-        if codepoint == 'f':
-            window.fullscreen = not window.fullscreen
-            return True
-        return False
+    def toggleFullScreen(self):
+        window = kivy.core.window.Window
+        window.fullscreen = not window.fullscreen
+
+    def _on_keyboard(self, window, key, scancode, codepoint, modifier):
+        self.onKeyEvent.call(key, scancode, codepoint, modifier)
 
     def setTitle(self, title):
         self.kivi_app.title = title

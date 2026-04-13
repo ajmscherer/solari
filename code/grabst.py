@@ -1,3 +1,4 @@
+from common import Event
 from abc import ABC, abstractmethod
 import re
 import math
@@ -109,6 +110,10 @@ class CanvasRelative(Canvas):
 
 class GraphicInterface(ABC):
 
+    def __init__(self) -> None:
+        super().__init__()  
+        self.onKeyEvent = Event()
+
     @abstractmethod
     def start(self, drawFunction, sizeRequirement, framePerSecond):
         '''Start the underlying graphic system'''
@@ -117,9 +122,13 @@ class GraphicInterface(ABC):
     def setTitle(self, title):
         '''Set the title of the main window'''
 
-    # @abstractmethod
-    # def isRunning(self):
-    #     ''''Return true if the graphic system is running'''
+    def notifyEvent(self, event:Event,  *args, **kwargs):
+        '''Call this method to trigger a key event'''
+        event.call(*args, **kwargs)
+
+    @abstractmethod
+    def toggleFullScreen(self):
+        '''Toggle the fullscreen mode of the main window'''
 
 class GraphicApp(ABC):
 

@@ -101,6 +101,22 @@ class ValueRotation:
 
         return result
 
+
+class Event:
+    
+    def __init__(self) -> None:
+        self.handlers = []
+
+    def bind(self, handler):
+        self.handlers.append(handler)
+
+    def unbind(self, handler):
+        self.handlers.remove(handler)
+
+    def call(self, *args, **kwargs):
+        for handler in self.handlers:
+            handler(*args, **kwargs)
+
 ''' HELPER FUNCTIONS '''
 
 def time_to_seconds(time_str: str) -> int:
