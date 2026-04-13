@@ -6,6 +6,8 @@ A Scherer
 
 '''
 
+import unicodedata
+
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
@@ -22,7 +24,6 @@ from abc import ABC, abstractmethod
 from enum import Enum, auto
 import math
 
-import unidecode
 
 from feeder import Feeder, Message
 
@@ -80,13 +81,16 @@ class myobject:
     pass
 
 class Glyph(myobject, ABC):
+    ''' A Glyph is a symbol that can be displayed on the panel. It can be a character, a number, a symbol, etc. It is defined by its size and the images to display for each half of the panel (top and bottom). The images are built on demand and cached for future use. The images are built by the buildImages method that need to be implemented by the subclass. The getImages method returns the images to display for each half of the panel. The images are stored in a dictionary with the keys being the image type (whole, top, bottom) and the values being the images to display for each half of the panel. The whole image is used when the panel is not rotating, the top and bottom images are used when the panel is rotating.'''
 
     def __init__(self, size) -> None:
+        '''size is a tuple (width, height) that defines the size of the glyph. The size of the panel is defined by the size of the glyph and the padding between the glyphs.'''
         super().__init__()
         self.cacheImage = None
         self.size = size
 
     def getImages(self):
+        '''Get the images to display for each half of the panel. The images are stored in a dictionary with the keys being the image type (whole, top, bottom) and the values being the images to display for each half of the panel. The whole image is used when the panel is not rotating, the top and bottom images are used when the panel is rotating. The images are built on demand and cached for future use. The images are built by the buildImages method that need to be implemented by the subclass.'''
         if not self.cacheImage:
             self.cacheImage = self.buildImages()
         return self.cacheImage
@@ -96,8 +100,14 @@ class Glyph(myobject, ABC):
        return {}
 
 class CharGlyph(Glyph):
+    '''A Glyph that represents a character. The images are built by drawing the character on a transparent background. The character is drawn at the center of the canvas. The images are built for each half of the panel (top and bottom) and for the whole panel. The images are built on demand and cached for future use.
+    '''
 
     def __init__(self, character, size, font, fontSize) -> None:
+        '''character: the character to display
+        size: a tuple (width, height) that defines the size of the glyph. The size of the panel is defined by the size of the glyph and the padding between the glyphs.
+        font: the font to use to draw the character
+        fontSize: the size of the font to use to draw the character '''
         super().__init__(size)
         self.font = font
         self.fontSize = fontSize
@@ -105,6 +115,8 @@ class CharGlyph(Glyph):
 
 
     def buildImages(self):
+        '''Build the images to display for each half of the panel. The images are stored in a dictionary with the keys being the image type (whole, top, bottom) and the values being the images to display for each half of the panel. The whole image is used when the panel is not rotating, the top and bottom images are used when the panel is rotating. The images are built by drawing the character on a transparent background. The character is drawn at the center of the canvas. The images are built on demand and cached for future use.'''
+
         # retrieve width and height
         size = width, height= self.size
 
@@ -141,17 +153,21 @@ class CharGlyph(Glyph):
         
 
 class GlyphSet:
-
+    '''A set of glyphs that can be displayed on the panel. The glyphs are stored in a dictionary with the keys being the glyph code and the values being the glyph objects. The glyph code is a string that represents the character to display. The glyph objects are built on demand and cached for future use. The glyphs are built by the buildStandard method that need to be implemented by the subclass. The getGlyph method returns the glyph object for a given glyph code. The findNextGlyphCode method returns the next glyph code in the set for a given glyph code. The next glyph code is determined by the order of the keys in the dictionary.
+    '''
+    
     def __init__(self, glyphSize) -> None:
         self.glyphs = {}
         self.glyphSize = glyphSize
 
     def addGlyph(self, code:str, glyph):
+        '''Add a glyph to the set. The glyph is stored in a dictionary with the key being the glyph code and the value being the glyph object. The glyph code is a string that represents the character to display. The glyph objects are built on demand and cached for future use. The glyphs are built by the buildStandard method that need to be implemented by the subclass. The getGlyph method returns the glyph object for a given glyph code. The findNextGlyphCode method returns the next glyph code in the set for a given glyph code. The next glyph code is determined by the order of the keys in the dictionary.'''
         #assert (code not in self.glyphs)
         self.glyphs[code] = glyph
 
     @staticmethod
     def buildStandard(glyphSize, fontSize):
+        '''Build a standard set of glyphs that can be displayed on the panel. The glyphs are stored in a dictionary with the keys being the glyph code and the values being the glyph objects. The glyph code is a string that represents the character to display. The glyph objects are built on demand and cached for future use. The glyphs are built by drawing the character on a transparent background. The character is drawn at the center of the canvas. The images are built for each half of the panel (top and bottom) and for the whole panel. The images are built on demand and cached for future use.'''
         font = PIL.ImageFont.truetype(DEFAULT_FONT_FILE_PATH,size=fontSize) 
         # build char glyphs
         glyphSet = GlyphSet(glyphSize=glyphSize)
@@ -161,6 +177,7 @@ class GlyphSet:
         return glyphSet 
 
     def getGlyph(self, glyphCode):
+        
         if glyphCode in self.glyphs:
             return self.glyphs[glyphCode]
         else:
@@ -409,6 +426,8 @@ class GlyphPanel:
 
         lineSize, rowCount = self.panelDimension
 
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+
         def g(t,pos=0):
             if pos>=len(t):
                 return []
@@ -436,9 +455,7 @@ class GlyphPanel:
 
 
         rankerName = random.choice(list(self.rankings.keys()))
-        #rankerName = 'downByLine'
         ranker = self.rankings[rankerName]
-        print(rankerName)
         
         sleepDelay = 0
 
@@ -493,77 +510,6 @@ class GlyphPanel:
             h-= DEFAULT_PANEL_PADDING + self.glyphSize[1] // 2
             diam=1.5
             canvas.drawCircle(w, h, diam, color=Palette.GREEN, width=diam)
-
-class TextParser:
-
-    def __init__(self, lines, glyphPanel, rankerName) -> None:
-        self.lines = lines
-        self.glyphPanel = glyphPanel
-        self.rankerName = rankerName
-        self.pos = 0
-
-
-    @staticmethod 
-    def loadFromFile(path, glyphPanel, rankerName = "default"):
-        lines = []
-        with open(path, "r") as file:
-            for line in file:
-                lines.append(line.strip('\n'))
-                lines.append('')
-        return TextParser(lines=lines, glyphPanel=glyphPanel, rankerName=rankerName)
-            
-
-
-    def formatLines(self, line):
-
-        rowLength, _ = self.glyphPanel.panelSize
-
-        cm = min(rowLength, len(line))
-
-        def formatLinesWithoutToken(line):
-            # retrieve panel size
-            rowLength, rowCount = self.glyphPanel.panelSize
-            
-            lines = []
-
-            def eatWord(cursor0):
-                cursor1 = cursor0
-                while cursor1<cm and line[cursor1] in ALPHA_CHAR:
-                    cursor1 +=1
-                result = line[cursor0:cursor1]
-                cursor0 = cursor1
-                return cursor0, result
-
-            def eatSep(cursor0):
-                if cursor0 <cm and line[cursor0] not in ALPHA_CHAR:
-                    return cursor0+1, line[cursor0]
-                else:
-                    return cursor0, ""
-
-            # remove accents
-            lineUnidecoded = unidecode.unidecode(line)
-
-            lines.append(lineUnidecoded)
-            
-            return lines
-
-        return formatLinesWithoutToken(line)
-
-    def readNextBlock(self):
-        block=[]
-
-        # retrieve panel size
-        _, rowCount = self.glyphPanel.panelSize
-
-        while len(block)<rowCount:
-            line = self.lines[self.pos]
-            formatedLines = self.formatLines(line)
-            block.extend(formatedLines)
-            self.pos = (self.pos + 1) % len(self.lines)
-            if self.pos == 0:
-                break
-        return block
-
 
 class SolariApp(GraphicApp):
 
@@ -631,7 +577,9 @@ class SolariApp(GraphicApp):
         logging.info('SolariApp request new message to display from feeder')
 
         # have the method call each other again for the next message to display
-        threading.Timer(message.displayTimeInSeconds, self._cycle).start()
+        timer = threading.Timer(message.displayTimeInSeconds, self._cycle)
+        timer.daemon = True
+        timer.start()
 
 
     def draw(self, canvas, time):
@@ -649,39 +597,4 @@ class SolariApp(GraphicApp):
 
 
 
-    def draw_old(self, canvas, time):
-
-        now = datetime.datetime.now()
-
-        rowLength, rowCount = self.panel.panelDimension
-
-        def fmtTime(dt):
-            return f"{dt.hour:0>2}h{dt.minute:0>2}".rjust(rowLength)
-
-        messages = [
-                    f'{"Miami".rjust(rowLength)}<br><br>{now.strftime("%a %b %d %Y")}<br><br>{fmtTime(now)}<br>HAVE A GOOD DAY!',
-                    'AF007 PARIS       16h30 GATE 23<br>'+\
-                    'LU032 MUNICH      19h15 GATE 14<br>'+\
-                    'AA588 ZURICH      21h12 GATE 42<br>'+\
-                    'IB912 MADRID      22h54 GATE 04<br>'+\
-                    'RA912 BUCHAREST   22h58 GATE 11<br>'+\
-                    'TP126 LISBON      22h58 GATE 11<br>'+\
-                    'LU321 ROTTERDAM   23h14 GATE 31<br>',
-                    f'{"Welcome".rjust(rowLength)}<br><br>{fmtTime(now)}<br><br>TO THE SOLARI BOARD SIMULATOR',
-                           ]
-
-        life = ( time - self.panel.panelStartTime).seconds
-
-        cycleLength = 15
-
-        if  life % cycleLength == 0 and self.lifeFlag!=life:
-            self.lifeFlag = life
-            cycle = (life // cycleLength) % len(messages)
-            message = messages[cycle]
-            '''
-            message = "/".join(self.textParser.readNextBlock())
-            '''    
-            self.panel.updateText(message)
-            
-
-        self.panel.draw(canvas, time)
+   

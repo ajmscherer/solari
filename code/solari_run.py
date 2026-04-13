@@ -8,10 +8,8 @@ if __name__ == "__main__":
     # define GraphicInterface
     kiviInterface = KiviGraphicInterface()
 
+    # define panel size and feeder
     panelSize = DEFAULT_PANEL_SIZE
-
-    # feeder = FeederInfo.buildFromNewsSource('BBC', DEFAULT_PANEL_SIZE[0])
-
     feeder = FeederMix.buildFromNewsSource("BBC,FRANCE24,ALJAZEERA,TASS", colWidth=panelSize[0])
     
     # create the SolariApp

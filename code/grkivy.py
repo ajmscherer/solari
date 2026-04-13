@@ -70,6 +70,8 @@ class KiviGraphicInterface(grabst.GraphicInterface):
         kivy.core.window.Window.bind(on_key_down=self.on_keyboard)
 
         self.kivi_app.run()
+
+        pass
     
     def on_keyboard(self, window, key, scancode, codepoint, modifier):
         # press 'f' to toggle fullscreen

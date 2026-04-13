@@ -117,7 +117,9 @@ class GraphicInterface(ABC):
     def setTitle(self, title):
         '''Set the title of the main window'''
 
-    
+    # @abstractmethod
+    # def isRunning(self):
+    #     ''''Return true if the graphic system is running'''
 
 class GraphicApp(ABC):
 
