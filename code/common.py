@@ -89,14 +89,14 @@ class ValueRotation:
         self.getList = getList
         self.index = 0
 
-    def next(self):
+    def next(self)->dict:
         '''Return the next value in the list. The list is obtained by calling the getList function. The index is incremented by 1. If the index is greater than the length of the list, it is reset to 0.'''
         data = self.getList()
         length = len (data)
         if length>0:
             result= data[self.index % length]
         else:
-            result = None
+            result = {}
         self.index +=1
 
         return result

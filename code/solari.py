@@ -50,7 +50,7 @@ DEFAULT_SOUND = False
 
 #all_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!#$%&*()-=+;:\",<.>/? "
 ALPHA_CHAR = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-ALL_CHARS = " 01234567890"+ALPHA_CHAR+"!'\"$%&*-=+:,.?"
+ALL_CHARS = " 01234567890"+ALPHA_CHAR+"!'\"$%&*-=+:;,.?"
 
 
 #DEFAULT_FONT_FILE_PATH = "graphics/Solari.ttf"
