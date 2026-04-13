@@ -23,10 +23,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class NewsSource(Enum):
+    NY_TIMES= ("https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "US/Eastern")
+    CGTN= ("https://www.cgtn.com/subscribe/rss/section/world.xml", "Asia/Shanghai")
+    FRANCE_24= ("https://www.france24.com/en/rss", "Europe/Paris")
+    TIME_OF_INDIA= ("https://timesofindia.indiatimes.com/rssfeedstopstories.cms", "Asia/Kolkata")
     BBC= ("http://feeds.bbci.co.uk/news/rss.xml","Europe/London")
-    ALJAZEERA= ("https://www.aljazeera.com/xml/rss/all.xml", "Europe/London")
-    FRANCE24= ("https://www.france24.com/en/rss", "Europe/Paris")
+    AL_JAZEERA= ("https://www.aljazeera.com/xml/rss/all.xml", "Asia/Qatar")
     TASS= ("https://tass.com/rss/v2.xml", "Europe/Moscow")
+    # INTERFAX= ("https://www.interfax.ru/rss.asp", "Europe/Moscow")
+    THE_GUARDIAN= ("https://www.theguardian.com/world/rss", "Europe/London")
+    # PR_NEWSWIRE= ("https://www.prnewswire.com/rss/news-releases-list.rss", "US/Eastern")
 
 # TASS RSS feed URL 
 AP_NEWS_URL = "https://apnews.com/index.rss"
@@ -87,14 +93,14 @@ class InfoFetcher(ABC):
         recentInfo = [record for record in info if self._getRecordDate(record) >= windowStartTime]
         if len(recentInfo)==0:
             logging.warning(f"No recent info found for {self.sourceName} in the last {self.timeWindowSeconds} seconds.")
-            recentInfo = [{'published': datetime.now(timezone.utc).strftime("%Y.%m.%d %H:%M:%S"), 'title': 'No recent news', 'summary': 'No recent news', 'link': '', 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
+            recentInfo = [{'published': datetime.now(timezone.utc).isoformat(), 'title': 'No recent news', 'summary': 'No recent news', 'link': '', 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
         return recentInfo           
         
 
-    def next(self):
+    def next(self)->dict:
         return self._vrotation.next()
 
-    def asMessage(self, record:dict, colWidth:int) -> Message:
+    def asMessage(self, record:dict, panelSize:tuple[int,int]) -> Message:
         return Message("needs override")
 
     def setCacheUsageFlag(self, flag):
@@ -305,7 +311,6 @@ class NewsFetcher(InfoFetcher):
         
         # fetch request timestamp
         frt = datetime.now(timezone.utc)
-        source_tz = pytz.timezone(self.sourceTimeZone)
 
         news = []
 
@@ -361,21 +366,29 @@ class NewsFetcher(InfoFetcher):
         ts_str = record['published']
         return datetime.fromisoformat(ts_str)
 
-    def asMessage(self, record, colWidth=40):
+    def asMessage(self, record, panelSize:tuple[int,int]) -> Message:
         source, title, summary, published, link = [record[field] for field in ('source', 'title', 'summary', 'published', 'link')]
+        colWidth, rowCount = panelSize
+        source = " " + source.replace("_", " ")
         
         dt_utc =  datetime.fromisoformat(published)
         dt_local = dt_utc.astimezone(pytz.timezone(LOCAL_TIME_ZONE))
 
         tstamp = f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.strftime('%H')}H{dt_local.strftime('%M')}"
 
-        FirstLine = f"{tstamp}{source: >{colWidth-len(tstamp)}}"
-        TitleLine = "<br>".join(textwrap.wrap(title, width=colWidth))
+        lines = ['' for _ in range(rowCount)]
 
-        
-        solari= f"{FirstLine}<br><br>{TitleLine}"
+        lines[0] = tstamp
+        content=textwrap.wrap(title, width=colWidth)
+        for i in range(len(content)):
+            if i+2<rowCount:
+                lines[i+2] = content[i]
+        BottomLine = lines[-1][:colWidth-len(source)]
+        m = colWidth-len(BottomLine)-len(source)
+        lines[-1] = BottomLine+ " "*m + source
+        solari= '<br>'.join(lines)
 
-        return Message(solari, '30 seconds', link)
+        return Message(solari, '15 seconds', link)
     
 
 
@@ -389,7 +402,7 @@ def testFetcher():
                                 promptInitial=pr0)
     fetcher1.setCacheUsageFlag(True)
 
-    fetcher2 = NewsFetcher.find(NewsSource.ALJAZEERA)
+    fetcher2 = NewsFetcher.find(NewsSource.AL_JAZEERA)
     
     fetcher2.start(interval=1, limit=2)
 
