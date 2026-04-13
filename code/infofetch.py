@@ -6,9 +6,10 @@ import time
 import textwrap
 import hashlib
 import pytz
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from dateutil import parser as dateparser
 from abc import ABC, abstractmethod
-from common import CACHE_DIR, PROMPT_DIR, convertDate, ValueRotation, Scheduler
+from common import CACHE_DIR, PROMPT_DIR, convertDate2String, ValueRotation, Scheduler
 import json
 import logging
 
@@ -36,7 +37,7 @@ XAI_NEWS_RSS_URL = "https://api.x.ai/v1"  # Placeholder URL for XAI news feed
 NEWS_GATHERING_PROMPT = "news_gathering.txt"
 
 NEWS_CACHE_FILE_NAME_PREFIX = "cache_info"
-INFO_CACHE_FILE_NAME = NEWS_CACHE_FILE_NAME_PREFIX + "_{}_{}.txt"
+AGGREGATE_CACHE_FILE_NAME = NEWS_CACHE_FILE_NAME_PREFIX + "_{}_aggregate.txt"
 
 REFRESH_CYCLE = 30 # in minutes
 
@@ -45,8 +46,13 @@ LOCAL_TIME_ZONE = "US/Eastern"
 
 
 class Message:
+    '''
+    A message to be displayed on the panel. It is defined by its text, the time it should be displayed and an optional link. The time to display is defined in seconds and can be converted from a string format (e.g. "30 seconds", "1 minute", "2 hours") using the time_to_seconds function. The link is optional and can be used to provide more information about the message. The message can be copied using the copy method, which creates a new message with the same text, display time and link.
+    '''
 
     def __init__(self, text, displayTime:str = '30 seconds', link:str="" ) -> None:
+        '''text: the text to display on the panel
+        displayTime: the time to display the message on the panel, defined in seconds or in a string format (e.g. "30 seconds", "1 minute", "2 hours") that can be converted to seconds using the time_to_seconds function'''
         self.text = text
         self.displayTimeInSeconds = time_to_seconds(displayTime) # convert string to seconds
         self.link = link
@@ -56,21 +62,34 @@ class Message:
         return Message(self.text, displayTime, self.link)
 
 class InfoFetcher(ABC):
+    '''An InfoFetcher is a class that fetches information from a source and provides it in a format that can be displayed on the panel. The information is defined as a list of records, where each record is a dictionary that contains the information to display. The InfoFetcher class provides methods to fetch the information, to get the most recent information, to convert a record to a message that can be displayed on the panel, and to manage the cache of the fetched information. The InfoFetcher class is an abstract class that needs to be subclassed to implement the specific fetching logic for each source of information. The subclass needs to implement the _fetch method that fetches the information from the source and returns it as a list of records, and the _getRecordDate method that returns the date of a record as a datetime object. The InfoFetcher class also provides a start method that schedules regular fetching of the information at a specified interval, and a stop method that stops the scheduled fetching.'''
 
-    def __init__(self, sourceName) -> None:
+    def __init__(self, sourceName, timeWindow= '24 hours') -> None:
+        '''sourceName: the name of the source of information, used for caching and logging purposes
+        timeWindow: the time window for which to display information, defined in seconds or in a string format (e.g. "24 hours", "1 day") that can be converted to seconds using the time_to_seconds function. Only the information that is published within the time window will be displayed on the panel. The time window is used to filter the fetched information and to determine which information is considered recent and should be displayed on the panel.'''
+
         super().__init__()
         self.setCacheUsageFlag(False)
         self.sourceName = sourceName
         self._started = False
         self._scheduler = None
         self.info =[]
-        self._vrotation = ValueRotation(self)
+        self.timeWindowSeconds = time_to_seconds(timeWindow)
+        self._vrotation = ValueRotation(self.mostRecentInfo)
 
     def getInfo(self):
         return self.info
     
-    def as_list(self):
-        return self.getInfo()
+    def mostRecentInfo(self):
+        '''Return the most recent information that is published within the time window. The time window is defined by the timeWindowSeconds attribute and is used to filter the fetched information and to determine which information is considered recent and should be displayed on the panel. The method returns a list of records that are published within the time window. If no information is published within the time window, a default record is returned that indicates that no recent news is available.'''
+        info = self.getInfo()
+        windowStartTime = datetime.now(timezone.utc)- timedelta(seconds=self.timeWindowSeconds)
+        recentInfo = [record for record in info if self._getRecordDate(record) >= windowStartTime]
+        if len(recentInfo)==0:
+            logging.warning(f"No recent info found for {self.sourceName} in the last {self.timeWindowSeconds} seconds.")
+            recentInfo = [{'published': datetime.now(timezone.utc).strftime("%Y.%m.%d %H:%M:%S"), 'title': 'No recent news', 'summary': 'No recent news', 'link': '', 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
+        return recentInfo           
+        
 
     def next(self):
         return self._vrotation.next()
@@ -121,46 +140,58 @@ class InfoFetcher(ABC):
         # return
         return info
 
+    def _getCacheFilePath(self):
+        className = self._getClassName()
+        prefix = f"{className}_{self.sourceName}"
+        file_name = AGGREGATE_CACHE_FILE_NAME.format(prefix)
+        return Path(CACHE_DIR / file_name)
 
     def _fetchFromCache(self):
-        className = self._getClassName()
-        root = CACHE_DIR
-        pattern = INFO_CACHE_FILE_NAME.format(className, "2026*")
-        paths = list(root.rglob(pattern))
-        info =[]
-        for path in paths:
-            info.extend( json.load(open(path)))
+        aggregate_path = self._getCacheFilePath()
+        info = []
+        if aggregate_path.exists():
+            try:
+                info = json.loads(aggregate_path.read_text(encoding='utf-8'))
+            except json.JSONDecodeError:
+                logging.error(f"Error decoding JSON from cache for {aggregate_path}. Returning empty list.")
+        else:
+            logging.warning(f"No cache file found for {aggregate_path}. Returning empty list.")
+
         return info
 
-
     def _saveToCache(self, info):
-        '''Save info to cache '''
+        '''Save info to cache.'''
 
+        info_existing = self._fetchFromCache()
 
+        seen = set()
+        deduped = []
 
-        # get timestamp
-        now = datetime.now().strftime( "%Y.%m.%d %H:%M:%S")
-        
-        # get class name
-        className = self._getClassName()
+        for record in info+info_existing:
+            key = self._record_signature(record)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(record)
 
-        # build prefix
-        prefix = f"{className}_{self.sourceName}"
+        aggregate_path = self._getCacheFilePath()
+        aggregate_path.write_text(json.dumps(deduped, indent=2, ensure_ascii=False), encoding='utf-8')
 
-        # save two files: with with name showing timestamp and one with name showing current
-        for param in [now, 'current']:
-            file_name = INFO_CACHE_FILE_NAME.format(prefix, param)
-            path = Path(CACHE_DIR / file_name)
-            path.write_text(json.dumps(info, indent=2, ensure_ascii=False), encoding="utf-8")
+    def _record_signature(self, record):
+        signature = {
+            'title': record.get('title', ''),
+         #   'link': record.get('link', ''),
+            'published': record.get('published', ''),
+        }
+        return hashlib.md5(json.dumps(signature, sort_keys=True).encode('utf-8')).hexdigest()
 
     @abstractmethod
-    def _getRecordDate(self, record):
-        pass
-
+    def _getRecordDate(self, record) -> datetime:
+        '''return the date of the record as datetime object'''
+        
     @abstractmethod
     def _prepare(self):
         '''Do initial prepration work, like openign communication with source and initiating chat'''
-        pass
 
     @abstractmethod
     def _fetch(self)->list:
@@ -291,38 +322,35 @@ class NewsFetcher(InfoFetcher):
                 
 
                 # evaluate published date
-                published0 = news_entry.get('published_parsed', news_entry.get('updated_parsed', None))
+                published_str = f"{news_entry.get('published', news_entry.get('updated', ''))}"
 
-                if published0:
-                    year, month, day, hour, minute, second = [ published0.__getattribute__(field) for field in ['tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec'] ]
-                    published0 = datetime(year=year, month=month, day=day,
-                                            hour=hour, minute=minute, second=second)
-                    published_local = source_tz.localize(published0)
-                    published = published_local.astimezone(timezone.utc)
+                try:
+                    published = dateparser.parse(published_str)
 
-
+                except (ValueError, TypeError) as e:
+                    logging.error(f"Error parsing date '{published_str}': {e}")
+                
                 else:
-                    published = frt  # fallback to fetch request time if no date is available
+                    
+                    # evaluate summary
+                    if hasattr(news_entry, 'summary'):
+                        summary = f"{news_entry.summary[:300]}..." if len(news_entry.summary) > 300 else news_entry.summary
+                    else:
+                        summary = "No summary available."
 
-                # evaluate summary
-                if hasattr(news_entry, 'summary'):
-                    summary = f"{news_entry.summary[:300]}..." if len(news_entry.summary) > 300 else news_entry.summary
-                else:
-                    summary = "No summary available."
-
-                # create a record for the news item
-                record = {
-                    'title': news_entry.title,
-                    'summary': summary,
-                    'link': news_entry.link,
-                    'published': convertDate(published),
-                    'source': self.sourceName,
-                    'fetcher': self._getClassName(),
-                    'fetched_timestamp': convertDate(frt),
-                    'id': item_id
-                }
-                news.append (record)
-            
+                    # create a record for the news item
+                    record = {
+                        'title': news_entry.title,
+                        'summary': summary,
+                        'link': news_entry.link,
+                        'published': convertDate2String(published),
+                        'source': self.sourceName,
+                        'fetcher': self._getClassName(),
+                        'fetched_timestamp': convertDate2String(frt),
+                        'id': item_id
+                    }
+                    news.append (record)
+                
                 
         except Exception as e:
             logging.error(f"Error fetching feed: {e}")
@@ -330,21 +358,22 @@ class NewsFetcher(InfoFetcher):
         return news
 
     def _getRecordDate(self, record):
-        return record['published']
+        ts_str = record['published']
+        return datetime.fromisoformat(ts_str)
 
     def asMessage(self, record, colWidth=40):
         source, title, summary, published, link = [record[field] for field in ('source', 'title', 'summary', 'published', 'link')]
         
-        dt =  datetime.strptime(published, "%Y.%m.%d %H:%M:%S")
-        tstamp = f"{dt.strftime('%b').upper()} {dt.day}  {dt.strftime('%H')}H{dt.strftime('%M')}"
+        dt_utc =  datetime.fromisoformat(published)
+        dt_local = dt_utc.astimezone(pytz.timezone(LOCAL_TIME_ZONE))
+
+        tstamp = f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.strftime('%H')}H{dt_local.strftime('%M')}"
 
         FirstLine = f"{tstamp}{source: >{colWidth-len(tstamp)}}"
         TitleLine = "<br>".join(textwrap.wrap(title, width=colWidth))
 
+        
         solari= f"{FirstLine}<br><br>{TitleLine}"
-        solari = solari.replace("—", "-")
-        solari = solari.replace("’", "'")
-
 
         return Message(solari, '30 seconds', link)
     

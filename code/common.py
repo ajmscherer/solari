@@ -78,14 +78,20 @@ class Scheduler:
 
 
 class ValueRotation:
+    '''
+    Helper class to rotate through a list of values. The list can change over time, the ValueRotation will always use the latest list of values.
+    '''
 
-    def __init__(self, source) -> None:
-        ''' source : list of object '''
-        self.source = source
+    def __init__(self, getList) -> None:
+        '''
+        getList: a function that returns a list of values to rotate through. The list can change over time, the ValueRotation will always use the latest list of values.
+        '''
+        self.getList = getList
         self.index = 0
 
     def next(self):
-        data = self.source.as_list()
+        '''Return the next value in the list. The list is obtained by calling the getList function. The index is incremented by 1. If the index is greater than the length of the list, it is reset to 0.'''
+        data = self.getList()
         length = len (data)
         if length>0:
             result= data[self.index % length]
@@ -152,8 +158,8 @@ def time_to_seconds(time_str: str) -> int:
 
 ''' Helper function'''
 
-def convertDate(date:datetime):
-    return date.strftime("%Y.%m.%d %H:%M:%S")
+def convertDate2String(date:datetime):
+    return date.isoformat()
 
 def parseGMDDatetime(string, localTimeZone):
     # Step 1: Parse the GMT string into a naive datetime object

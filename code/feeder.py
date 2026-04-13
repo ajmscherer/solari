@@ -72,11 +72,13 @@ class FeederInfo(Feeder):
 
     def _getNextMessage(self) -> Message:
 
-        info = self.fetcher.getInfo()
-        infoCount = len(info)
-        pos = self.pos % infoCount
+        # info = self.fetcher.mostRecentInfo()
+        # infoCount = len(info)
+        # pos = self.pos % infoCount
 
-        message = self.fetcher.asMessage(info[pos], self.colWidth)
+        record = self.fetcher.next()
+
+        message = self.fetcher.asMessage(record, self.colWidth)
 
         self.pos += 1
 
