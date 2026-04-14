@@ -23,6 +23,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class NewsSource(Enum):
+    DW= ("https://cms.zerohedge.com/fullrss2.xml", "Europe/Berlin")
+    ZEROHEDGE= ("https://cms.zerohedge.com/fullrss2.xml", "US/Eastern")
+    NHK_WORD= ("https://www3.nhk.or.jp/nhkworld/data/en/news/backstory/rss.xml", "Asia/Tokyo")
+    GLOBO= ("https://g1.globo.com/rss/g1/mundo/", "America/Sao_Paulo")
+    VATICAN_NEWS= ("https://www.vaticannews.va/en.rss.xml", "Europe/Vatican")
+    LA_CROIX= ("https://www.la-croix.com/feeds/rss/site.xml", "Europe/Paris")
     NY_TIMES= ("https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "US/Eastern")
     CGTN= ("https://www.cgtn.com/subscribe/rss/section/world.xml", "Asia/Shanghai")
     FRANCE_24= ("https://www.france24.com/en/rss", "Europe/Paris")
@@ -30,9 +36,9 @@ class NewsSource(Enum):
     BBC= ("http://feeds.bbci.co.uk/news/rss.xml","Europe/London")
     AL_JAZEERA= ("https://www.aljazeera.com/xml/rss/all.xml", "Asia/Qatar")
     TASS= ("https://tass.com/rss/v2.xml", "Europe/Moscow")
-    # INTERFAX= ("https://www.interfax.ru/rss.asp", "Europe/Moscow")
+    INTERFAX= ("https://www.interfax.ru/rss.asp", "Europe/Moscow")
     THE_GUARDIAN= ("https://www.theguardian.com/world/rss", "Europe/London")
-    # PR_NEWSWIRE= ("https://www.prnewswire.com/rss/news-releases-list.rss", "US/Eastern")
+    PR_NEWSWIRE= ("https://www.prnewswire.com/rss/news-releases-list.rss", "US/Eastern")
 
 # TASS RSS feed URL 
 AP_NEWS_URL = "https://apnews.com/index.rss"
@@ -355,7 +361,7 @@ class NewsFetcher(InfoFetcher):
                         'published': convertDate2String(published),
                         'source': self.sourceName,
                         'fetcher': self._getClassName(),
-                        'fetched_timestamp': convertDate2String(frt),
+                        'fetched': convertDate2String(frt),
                         'id': item_id
                     }
                     news.append (record)
