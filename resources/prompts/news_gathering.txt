@@ -8,8 +8,8 @@ For each news item, provide the following information structure JSON format:
 1. Title of the news item ('title'). Maximum 20 characters
 2. Summary of the news item ('summary'). Maximum 60 characters  
 3. source of the news item ('source'). For example AP, AFP, TASS, etc ...
-4. Timestamp of publication ('published'). Timestamp to be structured as YYYY/MM/DD HH:MM:SS in GMT with HH in a 24 hour format. 
-5. hyperlink to the original news item ('link')
+4. Timestamp of publication ('published'). Timestamp to be structured as ISO (for example "2026-04-14T00:00:00+00:00"). 
+5. hyperlink to an X Post with high visibility related to the news item ('link'). Make sure to not hallucinate. Ie don't provide a link that does not exist or leads to an unknown page.
 6. A unique ID for the news item, to enable idenditification and de duplication
 
 Selection of the news

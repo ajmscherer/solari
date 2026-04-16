@@ -5,7 +5,6 @@ import feedparser
 import time
 import textwrap
 import hashlib
-import pytz
 from datetime import datetime, timedelta, timezone
 from dateutil import parser as dateparser
 from abc import ABC, abstractmethod
@@ -22,38 +21,41 @@ from common import time_to_seconds
 from dotenv import load_dotenv
 load_dotenv()
 
-class NewsSource(Enum):
-    DW= ("https://cms.zerohedge.com/fullrss2.xml", "Europe/Berlin")
-    ZEROHEDGE= ("https://cms.zerohedge.com/fullrss2.xml", "US/Eastern")
-    NHK_WORD= ("https://www3.nhk.or.jp/nhkworld/data/en/news/backstory/rss.xml", "Asia/Tokyo")
-    GLOBO= ("https://g1.globo.com/rss/g1/mundo/", "America/Sao_Paulo")
-    VATICAN_NEWS= ("https://www.vaticannews.va/en.rss.xml", "Europe/Vatican")
-    LA_CROIX= ("https://www.la-croix.com/feeds/rss/site.xml", "Europe/Paris")
-    NY_TIMES= ("https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "US/Eastern")
-    CGTN= ("https://www.cgtn.com/subscribe/rss/section/world.xml", "Asia/Shanghai")
-    FRANCE_24= ("https://www.france24.com/en/rss", "Europe/Paris")
-    TIME_OF_INDIA= ("https://timesofindia.indiatimes.com/rssfeedstopstories.cms", "Asia/Kolkata")
-    BBC= ("http://feeds.bbci.co.uk/news/rss.xml","Europe/London")
-    AL_JAZEERA= ("https://www.aljazeera.com/xml/rss/all.xml", "Asia/Qatar")
-    TASS= ("https://tass.com/rss/v2.xml", "Europe/Moscow")
-    INTERFAX= ("https://www.interfax.ru/rss.asp", "Europe/Moscow")
-    THE_GUARDIAN= ("https://www.theguardian.com/world/rss", "Europe/London")
-    PR_NEWSWIRE= ("https://www.prnewswire.com/rss/news-releases-list.rss", "US/Eastern")
-
-# TASS RSS feed URL 
-AP_NEWS_URL = "https://apnews.com/index.rss"
-MOSCOW_TIME_RSS_URL = "https://www.themoscowtimes.com/rss/news"
 XAI_NEWS_RSS_URL = "https://api.x.ai/v1"  # Placeholder URL for XAI news feed
 
-
-NEWS_GATHERING_PROMPT = "news_gathering.txt"
+XAI_NEWS_GATHERING_PROMPT = "news_gathering.txt"
 
 NEWS_CACHE_FILE_NAME_PREFIX = "cache_info"
 AGGREGATE_CACHE_FILE_NAME = NEWS_CACHE_FILE_NAME_PREFIX + "_{}_aggregate.txt"
+class InfoSource(Enum):
+    DW= {'fetcherClass':'NewsFetcher', 'rss_url':"https://rss.dw.com/rdf/rss-en-world", 'sourceTimeZone':"Europe/Berlin"}
+    ZEROHEDGE= {'fetcherClass':'NewsFetcher', 'rss_url':"https://cms.zerohedge.com/fullrss2.xml", 'sourceTimeZone':"US/Eastern"}
+    NHK_WORD= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www3.nhk.or.jp/nhkworld/data/en/news/backstory/rss.xml", 'sourceTimeZone':"Asia/Tokyo"}
+    GLOBO= {'fetcherClass':'NewsFetcher', 'rss_url':"https://g1.globo.com/rss/g1/mundo/", 'sourceTimeZone':"America/Sao_Paulo"}
+    VATICAN_NEWS= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.vaticannews.va/en.rss.xml", 'sourceTimeZone':"Europe/Vatican"}
+    LA_CROIX= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.la-croix.com/feeds/rss/site.xml", 'sourceTimeZone':"Europe/Paris"}
+    NY_TIMES= {'fetcherClass':'NewsFetcher', 'rss_url':"https://rss.nytimes.com/services/xml/rss/nyt/World.xml", 'sourceTimeZone':"US/Eastern"}
+    CGTN= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.cgtn.com/subscribe/rss/section/world.xml", 'sourceTimeZone':"Asia/Shanghai"}
+    FRANCE_24= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.france24.com/en/rss", 'sourceTimeZone':"Europe/Paris"}
+    TIME_OF_INDIA= {'fetcherClass':'NewsFetcher', 'rss_url':"https://timesofindia.indiatimes.com/rssfeedstopstories.cms", 'sourceTimeZone':"Asia/Kolkata"}
+    BBC= {'fetcherClass':'NewsFetcher', 'rss_url':"http://feeds.bbci.co.uk/news/rss.xml", 'sourceTimeZone':"Europe/London"}
+    AL_JAZEERA= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.aljazeera.com/xml/rss/all.xml", 'sourceTimeZone':"Asia/Qatar"}
+    TASS= {'fetcherClass':'NewsFetcher', 'rss_url':"https://tass.com/rss/v2.xml", 'sourceTimeZone':"Europe/Moscow"}
+    INTERFAX= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.interfax.ru/rss.asp", 'sourceTimeZone':"Europe/Moscow"}
+    THE_GUARDIAN= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.theguardian.com/world/rss", 'sourceTimeZone':"Europe/London"}
+    PR_NEWSWIRE= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.prnewswire.com/rss/news-releases-list.rss", 'sourceTimeZone':"US/Eastern"}   
+    AP_NEWS= {'fetcherClass':'NewsFetcher', 'rss_url':"https://apnews.com/index.rss", 'sourceTimeZone':"US/Eastern"}
+    MOSCOW_TIME = {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.themoscowtimes.com/rss/news", 'sourceTimeZone':"Europe/Moscow"}
 
-REFRESH_CYCLE = 30 # in minutes
+    XAI_NEWS_AGENT= {
+        'fetcherClass':'InfoFetcher_xAI', 
+        'API_key': os.getenv("XAI_API_KEY"), 
+        'model':"grok-4-1-fast-reasoning", 
+        'promptInitial': Path( PROMPT_DIR / XAI_NEWS_GATHERING_PROMPT).read_text(encoding='utf-8'), 
+        'promptRefresh': "Refresh please" }
 
-LOCAL_TIME_ZONE = "US/Eastern"
+
+
 
 
 
@@ -76,7 +78,37 @@ class Message:
 class InfoFetcher(ABC):
     '''An InfoFetcher is a class that fetches information from a source and provides it in a format that can be displayed on the panel. The information is defined as a list of records, where each record is a dictionary that contains the information to display. The InfoFetcher class provides methods to fetch the information, to get the most recent information, to convert a record to a message that can be displayed on the panel, and to manage the cache of the fetched information. The InfoFetcher class is an abstract class that needs to be subclassed to implement the specific fetching logic for each source of information. The subclass needs to implement the _fetch method that fetches the information from the source and returns it as a list of records, and the _getRecordDate method that returns the date of a record as a datetime object. The InfoFetcher class also provides a start method that schedules regular fetching of the information at a specified interval, and a stop method that stops the scheduled fetching.'''
 
-    def __init__(self, sourceName, timeWindow= '24 hours') -> None:
+    _catalog = {}
+
+    @staticmethod
+    def find(item):
+        '''Find an InfoFetcher for the given item. The item can be an InfoSource enum member or a string that matches the name of an InfoSource enum member. The method returns an instance of the InfoFetcher subclass that corresponds to the item. The method uses a catalog to cache the created InfoFetcher instances, so that if the same item is requested again, the cached instance is returned instead of creating a new one. If the item is not found in the InfoSource enum, an exception is raised.
+        '''
+        catalog = InfoFetcher._catalog
+        is_members = InfoSource.__members__
+
+        if item in InfoSource:
+            info_name = item.name
+            
+        else:
+            if item not in is_members:
+                logging.error(f"item '{item}' not in InfoSource")
+                raise Exception()
+            info_name = item
+        
+        # builde catalog
+        if info_name not in catalog:
+            params = is_members[info_name].value
+            fetcherClass=globals().get(params['fetcherClass'])
+            if fetcherClass is None:
+                logging.error(f"fetcherClass '{params['fetcherClass']}' not found in globals")
+                raise Exception()
+            catalog[info_name] = fetcherClass(sourceName=info_name, **params)
+
+        return catalog[info_name]
+
+
+    def __init__(self, sourceName, timeWindow= '24 hours', **kwargs) -> None:
         '''sourceName: the name of the source of information, used for caching and logging purposes
         timeWindow: the time window for which to display information, defined in seconds or in a string format (e.g. "24 hours", "1 day") that can be converted to seconds using the time_to_seconds function. Only the information that is published within the time window will be displayed on the panel. The time window is used to filter the fetched information and to determine which information is considered recent and should be displayed on the panel.'''
 
@@ -99,7 +131,7 @@ class InfoFetcher(ABC):
         recentInfo = [record for record in info if self._getRecordDate(record) >= windowStartTime]
         if len(recentInfo)==0:
             logging.warning(f"No recent info found for {self.sourceName} in the last {self.timeWindowSeconds} seconds.")
-            recentInfo = [{'published': datetime.now(timezone.utc).isoformat(), 'title': 'No recent news', 'summary': 'No recent news', 'link': '', 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
+            recentInfo = [{'published': datetime.now(timezone.utc).isoformat(), 'title': 'Loading feed...', 'summary': 'No recent news', 'link': '', 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
 
         # sort by published date, most recent first
         recentInfo.sort(key=self._getRecordDate, reverse=True)
@@ -111,7 +143,7 @@ class InfoFetcher(ABC):
         return self._vrotation.next()
 
     def asMessage(self, record:dict, panelSize:tuple[int,int]) -> Message:
-        return Message("needs override")
+        return Message(f"Class {self.__class__.__name__}:<br>asMessage needs to be<br>overloaded")
 
     def setCacheUsageFlag(self, flag):
         self._useCache = flag in [True,'on', 'ON']
@@ -133,8 +165,6 @@ class InfoFetcher(ABC):
             return self._scheduler.running
         else:
             return False
-
-
 
     def fetch(self):
 
@@ -215,8 +245,8 @@ class InfoFetcher(ABC):
 
 class InfoFetcher_xAI(InfoFetcher):
 
-    def __init__(self, API_key, model, promptInitial, PromptRefresh="Refresh please") -> None:
-        super().__init__('xAI')
+    def __init__(self, API_key, model, promptInitial, PromptRefresh="Refresh please", **kwargs) -> None:
+        super().__init__(**kwargs)
         self.API_key = API_key
         self.model = model
         self.promptInitial = promptInitial
@@ -234,10 +264,12 @@ class InfoFetcher_xAI(InfoFetcher):
         self.chat = client.chat.create(model=self.model, store_messages=True, tools=tools )
 
         # get initial prompt to prepare the news feed
-        response = self.processPrompt(self.promptInitial)
-
-        assert(response=="OK")
-        
+        try:
+            response = self.processPrompt(self.promptInitial)
+            assert(response=="OK")
+        except Exception as e:
+            logging.error(f"Error during initial preparation of InfoFetcher_xAI: {e}")
+            raise Exception(f"Error during initial preparation of InfoFetcher_xAI: {e}")
 
     def _fetch(self) -> list:
         
@@ -245,21 +277,21 @@ class InfoFetcher_xAI(InfoFetcher):
         response = self.processPrompt(self.promptRefresh)
         
         info =[]
-        now = datetime.now().strftime( "%Y.%m.%d %H:%M:%S")
+        now = datetime.now().isoformat()
 
         if response:
             news_recs = json.loads(response)
             for news_rec in news_recs:
-                title, summary, source, published_GMT, link, id=[news_rec[field] for field in  ( "title", "summary","source","published","link","id")]
+                title, summary, source, published, link, id=[news_rec[field] for field in  ( "title", "summary","source","published","link","id")]
 
                 item = {
-                        'title': title,
+                        'title': title+": "+summary,
                         'summary': summary,
                         'link': link,
-                        'published': published_GMT,
-                        'source': source,
+                        'published': published,
+                        'source': source+ "/XAI",
                         'fetcher': self._getClassName(),
-                        'fetch_timestamp': now,
+                        'fetched': now,
                         'id': f"XAI-{now}{id}",
                             }
                 info.append(item)
@@ -267,7 +299,8 @@ class InfoFetcher_xAI(InfoFetcher):
         return info
     
     def _getRecordDate(self, record):
-        return record['published']
+        ts_str = record['published']
+        return datetime.fromisoformat(ts_str)
 
     def processPrompt(self, prompt)->str:
         '''Send a prompt to XAI API and return the response'''
@@ -278,35 +311,41 @@ class InfoFetcher_xAI(InfoFetcher):
 
         return response.content
 
+    def asMessage(self, record: dict, panelSize: tuple[int, int]) -> Message:
+        
+        title = record.get('title', 'No title')
+        source = record.get('source', 'Unknown source')
+        published = record.get('published', '')
+        link = record.get('link', '')
+
+        colWidth, rowCount = panelSize
+        source = " " + source.replace("_", " ")
+
+        dt_utc =  datetime.fromisoformat(published)
+        dt_local = dt_utc.astimezone()
+
+        tstamp = f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.strftime('%H')}H{dt_local.strftime('%M')}"
+
+        lines = ['' for _ in range(rowCount)]
+
+        lines[0] = tstamp
+        content=textwrap.wrap(title, width=colWidth)
+        for i in range(len(content)):
+            if i+2<rowCount:
+                lines[i+2] = content[i]
+        BottomLine = lines[-1][:colWidth-len(source)]
+        m = colWidth-len(BottomLine)-len(source)
+        lines[-1] = BottomLine+ " "*m + source
+        solari= '<br>'.join(lines)
+
+        return Message(text=solari, displayTime='30 seconds', link=link, fetcher=self)
+
 class NewsFetcher(InfoFetcher):
 
-    _catalog = {}
-
-    @staticmethod
-    def find(item):
-
-        catalog = NewsFetcher._catalog
-        ns_members = NewsSource.__members__
-
-        if item in NewsSource:
-            news_name = item.name
-        else:
-            if item not in ns_members:
-                logging.error(f"item '{item}' not in NewsSource")
-                raise Exception()
-            news_name = item
-        
-        # builde catalog
-        if news_name not in catalog:
-            url, timeZone = ns_members[news_name].value
-            catalog[news_name] = NewsFetcher(url, news_name, timeZone)
-
-        return catalog[news_name]
-
     
-    def __init__(self, rss_url, sourceName, sourceTimeZone) -> None:
+    def __init__(self, rss_url, sourceName, sourceTimeZone, **params) -> None:
 
-        super().__init__(sourceName=sourceName)
+        super().__init__(sourceName=sourceName, **params)
         self.rss_url = rss_url
         self.sourceTimeZone = sourceTimeZone
 
@@ -382,7 +421,7 @@ class NewsFetcher(InfoFetcher):
         source = " " + source.replace("_", " ")
         
         dt_utc =  datetime.fromisoformat(published)
-        dt_local = dt_utc.astimezone(pytz.timezone(LOCAL_TIME_ZONE))
+        dt_local = dt_utc.astimezone()
 
         tstamp = f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.strftime('%H')}H{dt_local.strftime('%M')}"
 
@@ -412,7 +451,7 @@ def testFetcher():
                                 promptInitial=pr0)
     fetcher1.setCacheUsageFlag(True)
 
-    fetcher2 = NewsFetcher.find(NewsSource.AL_JAZEERA)
+    fetcher2 = NewsFetcher.find(InfoSource.AL_JAZEERA)
     
     fetcher2.start(interval=1, limit=2)
 
