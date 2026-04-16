@@ -58,19 +58,23 @@ class Scheduler:
                     self.stop()
                     
 
-        # start targetFunction immediately
-        target()
 
         # schedule calls to targetFunction every refresh_cycle
         schedule.every(self.interval).minutes.do(target)
         
         def run_scheduler():
+            if self.running:
+                # start targetFunction immediately
+                target()
+
             while self.running:
                 schedule.run_pending()
                 time.sleep(1)
         
         thread = Thread(target=run_scheduler, daemon=True)
         thread.start()
+
+        time.sleep(1) # give the thread time to start
     
     def stop(self):
         self.running = False
