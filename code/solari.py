@@ -48,9 +48,9 @@ DEFAULT_PANEL_PADDING = 50
 DEFAULT_PORT_REFRESH_LAPSE = 10 # time in milliseconds for the panel to deal with one port to the next when refreshing 
 DEFAULT_SOUND = False
 
-#all_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!#$%&*()-=+;:\",<.>/? "
+#all_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!#$%&*()-=+;:\",<.>/?_ "
 ALPHA_CHAR = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-ALL_CHARS = " 01234567890"+ALPHA_CHAR+"!'\"$%&*-=+:;,.?"
+ALL_CHARS = " 01234567890"+ALPHA_CHAR+"!'\"$%&*-=+:;,.?/_#"
 
 
 #DEFAULT_FONT_FILE_PATH = "graphics/Solari.ttf"
@@ -534,7 +534,7 @@ class SolariApp(GraphicApp):
         self.feeder = feeder
 
         # set window title
-        self.title = "Solari Board Simulator"
+        self.title = "Solari Board"
         self.graphicInterface.setTitle(self.title)
 
 
@@ -566,8 +566,6 @@ class SolariApp(GraphicApp):
         self.graphicInterface.onKeyEvent.bind(self._on_keyboard)
 
         self.message0 = Message('')
-        self.link=None
-
 
 
         # initiate cycling messages from feeder
@@ -581,8 +579,8 @@ class SolariApp(GraphicApp):
             return True
         
         elif codepoint == 'l':
-            url = self.link            
-            if not url:
+            url = self.message0.link
+            if not url: 
                 logging.error('No link to open')
                 return False
             logging.info(f"Opening link {url} in browser")
@@ -598,7 +596,6 @@ class SolariApp(GraphicApp):
         
         # get message from feeder and update link to display
         message = self.feeder.getMessage()
-        self.link = message.link
 
         # logging
         logging.info('SolariApp request new message to display from feeder')
