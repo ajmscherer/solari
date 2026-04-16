@@ -59,10 +59,23 @@ class FeederStatic(Feeder):
 class FeederInfo(Feeder):
 
     @staticmethod
-    def buildFromNewsSource(news_source, panelSize:tuple[int,int]):
-        newsFetcher = NewsFetcher.find(news_source)
-        newsFetcher.start()
-        return FeederInfo(fetcher=newsFetcher, panelSize=panelSize)
+    def buildFromInfoSource(news_source, panelSize:tuple[int,int]):
+        '''
+        Return a feeder that fetches information from the given news source. 
+        If the news source is not found in the InfoSource enum, an exception is raised.
+        '''
+        try:
+            newsFetcher = NewsFetcher.find(news_source)
+            try:
+                newsFetcher.start()
+                return FeederInfo(fetcher=newsFetcher, panelSize=panelSize)
+            
+            except Exception as e:
+                logging.error(f"Error starting feeder for source {news_source}: {e}")
+                raise
+        except Exception as e:
+            logging.error(f"Error building feeder for source {news_source}: {e}")
+            raise
 
     def __init__(self, fetcher: InfoFetcher, panelSize:tuple[int,int]) -> None:
         super().__init__()
@@ -71,10 +84,6 @@ class FeederInfo(Feeder):
         self.pos = 0
 
     def _getNextMessage(self) -> Message:
-
-        # info = self.fetcher.mostRecentInfo()
-        # infoCount = len(info)
-        # pos = self.pos % infoCount
 
         record = self.fetcher.next()
 
@@ -87,14 +96,21 @@ class FeederInfo(Feeder):
 class FeederMix(Feeder):
     
     @staticmethod
-    def buildFromNewsSource(news_sources, panelSize:tuple[int,int]):
-        if isinstance(news_sources, str):
-            news_sources = news_sources.split(",")
+    def buildFromInfoSource(info_sources, panelSize:tuple[int,int]):
+        if isinstance(info_sources, str):
+            info_sources = info_sources.split(",")
+        
         feeders = []
-        for news_source in news_sources:
-            feeder = FeederInfo.buildFromNewsSource(news_source= news_source, panelSize=panelSize )
-            feeders.append(feeder)
+        for info_source in info_sources:
+            try:                
+                feeder = FeederInfo.buildFromInfoSource(news_source= info_source, panelSize=panelSize )
+                feeders.append(feeder)
+            except Exception as e:
+                logging.error(f"Error building feeder for source {info_source}: {e}")
 
+        if len(feeders)<1:
+            logging.error("No feeders could be built from the provided info sources. Returning a default feeder.")
+            return Feeder.default()
         return FeederMix(feeders=feeders)
 
     def __init__(self, feeders) -> None:
