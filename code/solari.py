@@ -14,8 +14,8 @@ import PIL.ImageFont
 
 import simpleaudio
 import threading
-import logging
 import random
+import time
 
 from grabst import CanvasRelative, GraphicApp, Palette
 
@@ -25,9 +25,13 @@ from enum import Enum, auto
 import math
 import webbrowser
 
-from feeder import Feeder, Message
+from feeder import Feeder
 
-from common import RESOURCES_DIR
+from common import RESOURCES_DIR, Helper
+
+
+logger = Helper.supplyLogger()
+
 
 # Definition of constants
 
@@ -559,14 +563,15 @@ class SolariApp(GraphicApp):
             portRefreshLapse=portRefreshLapse,
             sound=sound)
 
-        # init lifeflag
-        self.lifeFlag = None
-
-
         self.graphicInterface.onKeyEvent.bind(self._on_keyboard)
 
-        self.message0 = Message('')
+        # initialize message0 to an empty message to avoid errors when the user clicks on the panel before the first message is loaded from the feeder
+        self.message0 = None
 
+        # wait a bit before starting to display messages to let the user see the panel before it starts refreshing
+        time.sleep(3)
+
+        logger.info("Starting SolariApp with feeder: "+str(feeder))
 
         # initiate cycling messages from feeder
         self._cycle()
@@ -579,27 +584,22 @@ class SolariApp(GraphicApp):
             return True
         
         elif codepoint == 'l':
-            url = self.message0.link
-            if not url: 
-                logging.error('No link to open')
+            if self.message0 and self.message0.link:
+                url = self.message0.link
+                logger.info(f"Opening link {url} in browser")
+                webbrowser.open(url)
+                return True
+            else:
+                logger.error('No link to open')
                 return False
-            logging.info(f"Opening link {url} in browser")
-            webbrowser.open(url)
-            return True
         
         return False
 
     def _cycle(self):
 
         # obtain next message from the feeded
-        self.feeder.next()
+        message = self.feeder.next()
         
-        # get message from feeder and update link to display
-        message = self.feeder.getMessage()
-
-        # logging
-        logging.info('SolariApp request new message to display from feeder')
-
         # have the method call each other again for the next message to display
         timer = threading.Timer(message.displayTimeInSeconds, self._cycle)
         timer.daemon = True
@@ -612,7 +612,7 @@ class SolariApp(GraphicApp):
         message = self.feeder.getMessage()
 
         # update panel if string has changed
-        if message.text != self.message0.text:
+        if not self.message0 or message.text != self.message0.text:
             self.panel.updateText(message.text)
             self.message0 = message.copy()
 
