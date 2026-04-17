@@ -1,9 +1,9 @@
-
+import requests
 from pathlib import Path
 import logging
 import re
 from datetime import datetime
-import pytz
+import textwrap
 import schedule 
 import time
 from threading import Thread
@@ -14,10 +14,42 @@ PROMPT_DIR = RESOURCES_DIR / "prompts"
 CACHE_DIR = BASE_DIR / "cache"
 
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOG_PATH = LOG_DIR / "solari.log"
+
+
+class Helper:
+
+    _logger = None
+    _name = __name__
+    _level = logging.DEBUG
+    _logpath = LOG_PATH
+
+    @staticmethod
+    def supplyLogger() -> logging.Logger:
+        if not Helper._logger:            
+            logger =  logging.getLogger(Helper._name)
+            for handler in list(logger.handlers):
+                handler.close()
+                logger.removeHandler(handler)
+
+            handler = logging.FileHandler(
+                filename=Helper._logpath,      # main log file
+                mode='w',                 # write mode
+                encoding='utf-8',
+
+                    )
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)-8s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.setLevel(Helper._level)
+            Helper._logger = logger
+
+        return Helper._logger
+
+logger = Helper.supplyLogger()
 
 
 ''' HELPER CLASS '''
@@ -38,7 +70,7 @@ class Scheduler:
 
     def start(self):
         self.running = True
-        logging.info(f"Scheduler {self} started")
+        logger.info(f"Scheduler {self} started")
 
         self.counter = 0
 
@@ -49,36 +81,31 @@ class Scheduler:
             linfo = f"Scheduler {self} calls {self.targetFunction} #{self.counter}"
             if self.limit:
                 linfo += f" OF {self.limit}"
-            logging.info(linfo)
+            logger.debug(linfo)
 
             self.targetFunction()
 
             if self.limit: 
                 if self.counter == self.limit:
                     self.stop()
-                    
 
-
-        # schedule calls to targetFunction every refresh_cycle
-        schedule.every(self.interval).minutes.do(target)
+        target()                    
         
+        sc = schedule.Scheduler()
+        sc.every(self.interval).minutes.do(target)
+      
         def run_scheduler():
-            if self.running:
-                # start targetFunction immediately
-                target()
 
             while self.running:
-                schedule.run_pending()
+                sc.run_pending()
                 time.sleep(1)
         
         thread = Thread(target=run_scheduler, daemon=True)
         thread.start()
-
-        time.sleep(1) # give the thread time to start
-    
+   
     def stop(self):
         self.running = False
-        logging.info(f"Scheduler {self} stopped")
+        logger.info(f"Scheduler {self} stopped")
 
 
 class ValueRotation:
@@ -120,6 +147,64 @@ class Event:
     def call(self, *args, **kwargs):
         for handler in self.handlers:
             handler(*args, **kwargs)
+
+class Message:
+    '''
+    A message to be displayed on a Solari panel. It is defined by its text, the time it should be displayed and an optional link. 
+    '''
+
+    def __init__(self, text, displayTime:str|int = '30 seconds', link:str|None=None ) -> None:
+        '''text: the text to be displayed on the Solari panel. It can contain HTML tags for formatting.
+        displayTime: the time to display the message on the Solari panel. It can be defined in seconds (e.g. 30) or in a string format (e.g. "30 seconds", "1 minute", "2 hours"). The time_to_seconds function is used to convert the string format to seconds.
+        link: an optional link to provide more information about the message. It can be used to redirect the user to a website or to provide more context about the message. It is not displayed on the Solari panel, but it can be used by the application to provide more information about the message when the user interacts with it (e.g. by clicking on it).'''
+        
+        # The text is expected to be pre-formatted with HTML tags for line breaks and styling, as needed for the Solari panel display.
+        self.text = text
+
+        # The display time can be provided as a string (e.g., "30 seconds", "1 minute") or directly as an integer representing seconds. The time_to_seconds function is used to convert the string format to seconds if necessary.
+        if isinstance(displayTime, str):
+            self.displayTimeInSeconds = time_to_seconds(displayTime) # convert string to seconds
+        else:
+            self.displayTimeInSeconds = displayTime
+
+        # The link is an optional string that can be used to provide additional information about the message. It is not displayed on the Solari panel, but it can be used by the application to provide more context about the message when the user interacts with it (e.g., by clicking on it).
+        self.link = link
+
+    def copy(self):
+        displayTime = f"{self.displayTimeInSeconds} seconds"
+        return Message(self.text, displayTime, self.link)
+
+    @staticmethod
+    def create(dt_utc:datetime, content:str, bottomLine:str, displayTime:str|int, link:str|None, panelSize: tuple[int, int]):
+        '''Format a message for display on a Solari panel. The message is formatted to fit the panel size, with the date and time at the top, the content in the middle, and a bottom line at the bottom. The content is wrapped to fit the column width of the panel. The bottom line is truncated if it exceeds the column width. The message is returned as a Message object, which contains the formatted text, the display time, and an optional link.'''    
+        
+        colWidth, rowCount = panelSize
+        bottomLine = " " + bottomLine.replace("_", " ")
+
+        dt_local = dt_utc.astimezone()
+
+        tstamp = f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.strftime('%H')}H{dt_local.strftime('%M')}"
+
+        lines = ['' for _ in range(rowCount)]
+
+        lines[0] = tstamp
+
+        wrappedContent=textwrap.wrap(content, width=colWidth)
+
+        for i in range(len(wrappedContent)):
+            if i+2<rowCount:
+                lines[i+2] = wrappedContent[i]
+        BottomLine = lines[-1][:colWidth-len(bottomLine)]
+        m = colWidth-len(BottomLine)-len(bottomLine)
+        lines[-1] = BottomLine+ " "*m + bottomLine
+
+        # Join the lines with HTML line breaks for the Solari panel display
+        solariContent= '<br>'.join(lines)
+
+        message = Message(text=solariContent, displayTime=displayTime, link=link)
+
+        return message
+
 
 ''' HELPER FUNCTIONS '''
 
@@ -176,30 +261,43 @@ def time_to_seconds(time_str: str) -> int:
     
     return total_seconds
 
-''' Helper function'''
 
 def convertDate2String(date:datetime):
     return date.isoformat()
 
-def parseGMDDatetime(string, localTimeZone):
-    # Step 1: Parse the GMT string into a naive datetime object
-    gmt_string = "2026/04/09 23:15:00"
-    dt_naive = datetime.strptime(gmt_string, "%Y/%m/%d %H:%M:%S")
-
-    # Step 2: Localize it to UTC (since it's GMT)
-    utc = pytz.UTC
-    dt_utc = utc.localize(dt_naive)
-
-    # Step 3: Convert to Miami's local time (Eastern Time)
-    local = pytz.timezone(localTimeZone)
-    dt_local = dt_utc.astimezone(local)
-
-    # Now dt_miami is a timezone-aware datetime object in Miami's local time
-    return dt_local
-
-def getPromt(filename:str):
+def getPrompt(filename:str):
     extension = ".txt"
     if not filename.endswith(extension):
         filename = filename + extension
     return (PROMPT_DIR / filename).read_text()
+
+
+def get_city_from_ip():
+    
+    '''Fetch the user's city and location information based on their IP address using the ipinfo.io API. If the API call fails, return a default location (Miami, Florida, US) with placeholder coordinates and IP.
+    '''
+    
+    try:
+        response = requests.get("https://ipinfo.io/json", timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        result= {
+            "city": data.get("city"),
+            "region": data.get("region"),
+            "country": data.get("country"),
+            "loc": data.get("loc"),  # "lat,lon"
+            "ip": data.get("ip"),
+        }
+        
+    except requests.RequestException as e:
+        logger.warning(f"Unable to fetch location from IP: {e}. Using default location.")
+
+        result = {
+            "city": "Miami",
+            "region": "Florida",
+            "country": "US",
+            "loc": "25.7617,-80.1918",  # Miami coordinates
+            "ip": "127.0.0.1",  # Placeholder IP
+        }
+    return result
 

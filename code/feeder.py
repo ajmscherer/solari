@@ -1,6 +1,9 @@
 from abc import  abstractmethod
-from infofetch import Message, InfoFetcher, NewsFetcher
-import logging
+from common import Message, Helper
+from infofetch import InfoFetcher, NewsFetcher
+
+logger = Helper.supplyLogger()
+
 
 class Feeder:
 
@@ -12,6 +15,7 @@ class Feeder:
 
     def next(self):
         self._message = self._getNextMessage()
+        return self._message
     
     @abstractmethod
     def _getNextMessage(self)->Message:
@@ -42,7 +46,7 @@ class FeederStatic(Feeder):
         self.contents = contents
         self.pos = 0
         if len(contents)<1:
-            logging.error('contents is a list that must contain at least one string')
+            logger.error('contents is a list that must contain at least one string')
             self.contents = ['no list provided for FeederStatic']
         
 
@@ -59,7 +63,7 @@ class FeederStatic(Feeder):
 class FeederInfo(Feeder):
 
     @staticmethod
-    def buildFromInfoSource(news_source, panelSize:tuple[int,int]):
+    def buildFromInfoSource(news_source, panelSize:tuple[int,int], **kwargs):
         '''
         Return a feeder that fetches information from the given news source. 
         If the news source is not found in the InfoSource enum, an exception is raised.
@@ -68,17 +72,17 @@ class FeederInfo(Feeder):
             newsFetcher = NewsFetcher.find(news_source)
             try:
                 newsFetcher.start()
-                return FeederInfo(fetcher=newsFetcher, panelSize=panelSize)
+                return FeederInfo(fetcher=newsFetcher, panelSize=panelSize, **kwargs)
             
             except Exception as e:
-                logging.error(f"Error starting feeder for source {news_source}: {e}")
+                logger.error(f"Error starting feeder for source {news_source}: {e}")
                 raise
         except Exception as e:
-            logging.error(f"Error building feeder for source {news_source}: {e}")
+            logger.error(f"Error building feeder for source {news_source}: {e}")
             raise
 
-    def __init__(self, fetcher: InfoFetcher, panelSize:tuple[int,int]) -> None:
-        super().__init__()
+    def __init__(self, fetcher: InfoFetcher, panelSize:tuple[int,int], **kwargs) -> None:
+        super().__init__(**kwargs)
         self.fetcher = fetcher
         self.panelSize = panelSize
         self.pos = 0
@@ -87,7 +91,7 @@ class FeederInfo(Feeder):
 
         record = self.fetcher.next()
 
-        message = self.fetcher.asMessage(record, self.panelSize)
+        message = self.fetcher.recordAsSolariMessage(record, self.panelSize)
 
         self.pos += 1
 
@@ -96,20 +100,21 @@ class FeederInfo(Feeder):
 class FeederMix(Feeder):
     
     @staticmethod
-    def buildFromInfoSource(info_sources, panelSize:tuple[int,int]):
+    def buildFromInfoSource(info_sources, panelSize:tuple[int,int], **kwargs):
         if isinstance(info_sources, str):
             info_sources = info_sources.split(",")
-        
+        elif not isinstance(info_sources, list):
+            info_sources = [info_sources]
         feeders = []
         for info_source in info_sources:
             try:                
-                feeder = FeederInfo.buildFromInfoSource(news_source= info_source, panelSize=panelSize )
+                feeder = FeederInfo.buildFromInfoSource(news_source= info_source, panelSize=panelSize, **kwargs)
                 feeders.append(feeder)
             except Exception as e:
-                logging.error(f"Error building feeder for source {info_source}: {e}")
+                logger.error(f"Error building feeder for source {info_source}: {e}")
 
         if len(feeders)<1:
-            logging.error("No feeders could be built from the provided info sources. Returning a default feeder.")
+            logger.error("No feeders could be built from the provided info sources. Returning a default feeder.")
             return Feeder.default()
         return FeederMix(feeders=feeders)
 
@@ -123,7 +128,7 @@ class FeederMix(Feeder):
         feederCount = len(feeders)
         selectedFeeder = feeders[self.pos % feederCount]
         self.pos +=1
-        return selectedFeeder._getNextMessage()
+        return selectedFeeder.next()
 
 def buildCharMap(panelSize, startchar=32, lastchar=126):
     '''Build a character map for the Solari board. The character map is a dictionary that maps characters to their corresponding bitmaps. The bitmaps are represented as lists of integers, where each integer represents a line of the bitmap. The lineSize parameter is the number of characters per line in the bitmap. The startchar and lastchar parameters define the range of characters to include in the character map.

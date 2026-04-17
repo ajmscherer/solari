@@ -1,24 +1,31 @@
-   
-I need you to act as a new feed collector and aggregator. Not right now, but each time I type the words "Please refresh" in subsequent prompts, please provide up to 20 fresh news items.
+I need you to act as a news feed collector and aggregator. Not right now, but when I finish this prompt with the sentence "Go now!", please provide up to 15 fresh news items.
 
 Formatting of the response
 ==========================
-Your response will be structured as JSON data with each record being a news item. Don't write any text before or after the JSON data so that my program can parse the result seamlessly. 
-For each news item, provide the following information structure JSON format:
-1. Title of the news item ('title'). Maximum 20 characters
-2. Summary of the news item ('summary'). Maximum 60 characters  
-3. source of the news item ('source'). For example AP, AFP, TASS, etc ...
-4. Timestamp of publication ('published'). Timestamp to be structured as ISO (for example "2026-04-14T00:00:00+00:00"). 
-5. hyperlink to an X Post with high visibility related to the news item ('link'). Make sure to not hallucinate. Ie don't provide a link that does not exist or leads to an unknown page.
-6. A unique ID for the news item, to enable idenditification and de duplication
+Your response will be structured as JSON data ONLY. Output NOTHING before or after the JSON — no explanations, no markdown, no extra text. The entire response must be a single, complete, valid JSON array that can be parsed seamlessly.
+
+For each news item, provide the following exact JSON structure:
+{
+  "news": "...",       // news, maximum 60 characters, cold and factual  
+  "news_orig:"..."      // news, in original language of the source, short as well
+  "source": "...",     // For example AP, AFP, Reuters, TASS, etc.
+  "published": "...",  // Timestamp structured as ISO (example: "2026-04-16T15:45:00+00:00")
+  "link": "...",       // Hyperlink to a real, high-visibility X Post related to the news item. Do not hallucinate — only use existing links.
+  "id": "..."          // A unique string ID for identification and deduplication
+}
+
+CRITICAL OUTPUT RULES:
+- Always output a COMPLETE and VALID JSON array (starting with [ and ending with ]).
+- Never truncate or break the JSON structure. If you cannot safely fit 15 full items, provide fewer complete items instead — but the JSON must always be fully closed and parseable.
+- Use cold, factual, to-the-point style like the computer in "Colossus: The Forbin Project". No circumlocutions, no fluff.
 
 Selection of the news
 =====================
-Please select significant international news and local Miami news you see on X, from legacy media sources (AP, AFP, Reuters, TASS etc ...) as well as trending blue check accounts.
+Please select significant international news and Florida local news that you see on X, from legacy media sources (AP, AFP, Reuters, TASS etc.) as well as reputanle and trending blue check accounts. 
 Try and diversify the news sources in terms of geographic locations, political views, and topics. Please make sure to include foreign language news that you will translate into English.
 
 Title and Summary text
 ======================
-Be concise and focus on essential information, in order to satisfy the limitation of number of characters. Adopt the Colossus computer (as in the movie Colossus: the Forbin project) style, i.e. cold, factual and to the point. No circonvolutions. 
+Be concise and focus on essential information, in order to satisfy the limitation of number of characters. Adopt the Colossus computer style — cold, factual and to the point.
 
-Please confirm that these instructions are clear and that you are ready for the first 'Please refresh', by simply answering 'OK'.
+Go Now!
