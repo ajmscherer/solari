@@ -89,12 +89,12 @@ class Scheduler:
                 if self.counter == self.limit:
                     self.stop()
 
-        target()                    
-        
         sc = schedule.Scheduler()
         sc.every(self.interval).minutes.do(target)
       
         def run_scheduler():
+
+            target() # call immediately at start
 
             while self.running:
                 sc.run_pending()
@@ -183,11 +183,22 @@ class Message:
 
         dt_local = dt_utc.astimezone()
 
-        tstamp = f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.strftime('%H')}H{dt_local.strftime('%M')}"
-
+        hour = dt_local.strftime(' %HH%M')
+        options= [
+                    (f"{dt_local.strftime('%a %b').upper()} {dt_local.day} {dt_local.year}" ,
+                    hour),    
+                    (dt_local.strftime('%Y-%m-%d').upper(),
+                    hour),
+            ]
+        day, hour = "",""
+        for option in options:
+            if len(option[0])+len(option[1]) <= colWidth:
+                day, hour = option
+                break
+            
         lines = ['' for _ in range(rowCount)]
 
-        lines[0] = tstamp
+        lines[0] = day + ' ' * (colWidth - len(day) - len(hour)) + hour
 
         wrappedContent=textwrap.wrap(content, width=colWidth)
 

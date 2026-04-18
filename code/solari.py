@@ -43,10 +43,6 @@ DEFAULT_GLYPH_SIZE = 35, 60,
 GLYPH_PADDING = 6
 DEFAULT_FONT_SIZE = 42
 
-#DEFAULT_GLYPH_SIZE = 26,40
-#GLYPH_PADDING = 3
-#DEFAULT_FONT_SIZE = 32
-
 DEFAULT_PANEL_SIZE = 30 , 7
 DEFAULT_PANEL_PADDING = 50
 DEFAULT_PORT_REFRESH_LAPSE = 10 # time in milliseconds for the panel to deal with one port to the next when refreshing 
@@ -195,7 +191,16 @@ class GlyphSet:
             return nextGlyphCode
         else:
             raise Exception (f"Unknown glyphCode '{glyphCode}'")
-        
+
+    def findPreviousGlyphCode(self, glyphCode):
+        if glyphCode in self.glyphs:
+            lk = list(self.glyphs.keys())
+            i = lk.index(glyphCode)
+            nextGlyphCode=lk[(i-1)%len(lk)]
+            return nextGlyphCode
+        else:
+            raise Exception (f"Unknown glyphCode '{glyphCode}'")
+
 
 class GlyphPort:
     '''A symbol object to display'''
@@ -210,6 +215,7 @@ class GlyphPort:
         self.targetGlyphCode = ' '
         rotationSpeed = self.glyphPanel.getPortRotationSpeed()
         self.rotationSpeed = rotationSpeed # random alternative =   int(rotationSpeed *random.lognormvariate(1/math.exp(1),.05))
+        self.flashFlag = False
         self.wake()
 
     def sleep(self, milliseconds):
@@ -263,8 +269,10 @@ class GlyphPort:
         y0 = y0Map[topOrBottom]
 
         canvas.drawImage(image, y0=y0, verStretch=fraction)
+       
+    def flash(self):
+        self.flashFlag=True
 
-        
     def draw(self, canvas, time):
 
         rotSpeed = self.rotationSpeed
@@ -273,9 +281,12 @@ class GlyphPort:
         if not self.currentGlyphTime:
             self.currentGlyphTime = time
 
- 
-        if (self.currentGlyphCode == self.targetGlyphCode) or (self.sleepUntil > time):
+        if time<self.sleepUntil:
             self.currentGlyphTime = time
+        else:
+            if (self.currentGlyphCode == self.targetGlyphCode) and not self.flashFlag:
+                self.currentGlyphTime = time
+
 
 
         dt = time - self.currentGlyphTime
@@ -306,6 +317,7 @@ class GlyphPort:
             self.drawHalf(canvas, nextGlyphCode, ic.BOTTOM, fraction=1.0)
             self.currentGlyphCode = nextGlyphCode
             self.currentGlyphTime = time
+            self.flashFlag = False
             self.makeRelaySound()
 
         # Draw midle line
@@ -398,6 +410,16 @@ class GlyphPanel:
     def getGlyphSize(self):
         return self.glyphSize
 
+    def flash(self):
+        '''
+        force a manual refresh of the panel by advancing one glyph on each port. 
+        This is useful to trigger the animation and sound when the text is updated.
+        '''
+        for glyphPortRow in self.glyphPorts:
+            for glyphPort in glyphPortRow:
+                glyphPort.flash()
+
+
     def getRelaySound(self):
 
         if not self.audioCache:
@@ -422,6 +444,28 @@ class GlyphPanel:
         self.glyphPorts = glyphPorts
 
     def updateText(self, text:str):
+        '''
+        Display a text on the panel. The text is a string where each line is separated by a slash. 
+        The number of lines is determined by the number of rows in the panel. The number of characters per line is determined by the number of columns in the panel. If the text is too long, 
+        it will be truncated. If the text is too short, it will be padded with spaces.
+        '''
+
+        self.flash() # trigger animation and sound for the update of the text by advancing one glyph on each port. This is useful to trigger the animation and sound when the text is updated. The text will be updated in the next draw cycle.
+
+        rankings = self.rankings
+
+        ranker = random.choice(list(rankings.values()))
+
+        '''cols, rows = self.panelDimension
+        text2 = text.split("<br")
+        text2 = "<br>".join([f"{t: >{cols}}" for t in text2])
+        text2 = text2.replace(" ","A")'''
+
+        self.updateText_(text, ranker )  # update the text on the panel with the original text after a delay. This is useful to trigger the animation and sound for the update of the text by advancing one glyph on each port. The text will be updated in the next draw cycle.
+
+
+
+    def updateText_(self, text:str, ranker=None):
         '''
         Display a text on the panel.
 
@@ -456,16 +500,13 @@ class GlyphPanel:
 
         extraSep = [''] * (rowCount-len(lines))
         lines += extraSep
-
-
-        rankerName = random.choice(list(self.rankings.keys()))
-        ranker = self.rankings[rankerName]
-        
+       
         sleepDelay = 0
 
-        for col, row, timeSpan in ranker:
-            self.glyphPorts[row][col].sleep(sleepDelay)
-            sleepDelay += self.portRefreshLapse * timeSpan * random.lognormvariate(1/math.exp(1),.1)
+        if ranker:
+            for col, row, timeSpan in ranker:
+                self.glyphPorts[row][col].sleep(sleepDelay)
+                sleepDelay += self.portRefreshLapse * timeSpan * random.lognormvariate(1/math.exp(1),.1)
 
         for row, line in enumerate(lines):
             line = line[:lineSize].ljust(lineSize)
@@ -473,6 +514,7 @@ class GlyphPanel:
                 # retrieve glyphPort
                 glyphPort = self.glyphPorts[rowCount-row-1][col]
                 glyphPort.setNewTargetGlyph(symbol)
+
 
     def getSize(self):
         '''Get width and heigh of the panel area'''
@@ -490,13 +532,8 @@ class GlyphPanel:
 
     def drawPanel(self, canvas, time):
 
-        panelWidth, panelHeight = self.getSize()
-
-        canvasWidth, canvasHeight = canvas.getSize()
-
         (glyphWidth, glyphHeight),padding = self.glyphSize, self.glyphPadding
 
-        #x0 , y0 = (canvasWidth-panelWidth) // 2 , (canvasHeight-panelHeight) // 2
         x0,y0= DEFAULT_PANEL_PADDING, DEFAULT_PANEL_PADDING
 
         # draw all glyphs
@@ -507,8 +544,8 @@ class GlyphPanel:
                 glyphPort.draw(canvasRelative, time)
 
     def drawStatus(self, canvas, time):
-        '''Draw status information on the panel'''
-        if (time.second // 2) % 2 == 0:
+        '''Draw flashing green disque on the panel'''
+        if (time.second) % 2 == 0:
             w,h = self.getSize()
             w-= DEFAULT_PANEL_PADDING * 3 / 4
             h-= DEFAULT_PANEL_PADDING + self.glyphSize[1] // 2

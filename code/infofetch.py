@@ -30,14 +30,14 @@ NEWS_CACHE_FILE_NAME_PREFIX = "cache_info"
 AGGREGATE_CACHE_FILE_NAME = NEWS_CACHE_FILE_NAME_PREFIX + "_{}_aggregate.txt"
 class InfoSource(Enum):
     DW= {'fetcherClass':'NewsFetcher', 'rss_url':"https://rss.dw.com/rdf/rss-en-world", 'sourceTimeZone':"Europe/Berlin"}
-    ZEROHEDGE= {'fetcherClass':'NewsFetcher', 'rss_url':"https://cms.zerohedge.com/fullrss2.xml", 'sourceTimeZone':"US/Eastern", 'fetchInterval':'4 minutes'}
+    ZEROHEDGE= {'fetcherClass':'NewsFetcher', 'rss_url':"https://cms.zerohedge.com/fullrss2.xml", 'sourceTimeZone':"US/Eastern", }
     NHK_WORD= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www3.nhk.or.jp/nhkworld/data/en/news/backstory/rss.xml", 'sourceTimeZone':"Asia/Tokyo"}
     GLOBO= {'fetcherClass':'NewsFetcher', 'rss_url':"https://g1.globo.com/rss/g1/mundo/", 'sourceTimeZone':"America/Sao_Paulo"}
     VATICAN_NEWS= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.vaticannews.va/en.rss.xml", 'sourceTimeZone':"Europe/Vatican"}
     LA_CROIX= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.la-croix.com/feeds/rss/site.xml", 'sourceTimeZone':"Europe/Paris"}
-    NY_TIMES= {'fetcherClass':'NewsFetcher', 'rss_url':"https://rss.nytimes.com/services/xml/rss/nyt/World.xml", 'sourceTimeZone':"US/Eastern", 'fetchInterval':'4 minutes 30 secondes'}
+    NY_TIMES= {'fetcherClass':'NewsFetcher', 'rss_url':"https://rss.nytimes.com/services/xml/rss/nyt/World.xml", 'sourceTimeZone':"US/Eastern", }
     CGTN= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.cgtn.com/subscribe/rss/section/world.xml", 'sourceTimeZone':"Asia/Shanghai"}
-    FRANCE_24= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.france24.com/en/rss", 'sourceTimeZone':"Europe/Paris", 'fetchInterval':'5 minutes'}
+    FRANCE_24= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.france24.com/en/rss", 'sourceTimeZone':"Europe/Paris", }
     TIME_OF_INDIA= {'fetcherClass':'NewsFetcher', 'rss_url':"https://timesofindia.indiatimes.com/rssfeedstopstories.cms", 'sourceTimeZone':"Asia/Kolkata"}
     BBC= {'fetcherClass':'NewsFetcher', 'rss_url':"http://feeds.bbci.co.uk/news/rss.xml", 'sourceTimeZone':"Europe/London"}
     AL_JAZEERA= {'fetcherClass':'NewsFetcher', 'rss_url':"https://www.aljazeera.com/xml/rss/all.xml", 'sourceTimeZone':"Asia/Qatar"}
@@ -53,7 +53,8 @@ class InfoSource(Enum):
         'API_key': os.getenv("XAI_API_KEY"), 
         'model':"grok-4-1-fast-reasoning", 
         'prompt': getPrompt(XAI_NEWS_GATHERING_PROMPT),
-        'fetchInterval':'15 minutes' 
+        'fetchInterval':'30 minutes' ,
+        'sourceTimeZone':"US/Eastern",
         }
 
 
@@ -125,7 +126,7 @@ class InfoFetcher(ABC):
         
         if len(recentInfo)==0:
             logger.warning(f"No recent info found for {self.sourceName}")
-            recentInfo = [{'published': datetime.now(timezone.utc).isoformat(), 'news': 'Loading feed...',  'link': None, 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
+            recentInfo = [{'published': datetime.now(timezone.utc).isoformat(), 'news': '',  'link': None, 'source': self.sourceName, 'fetcher': self._getClassName(), 'id': f"{self._getClassName()}-norecent-{datetime.now().timestamp()}" }]
 
         # sort by published date, most recent first
         recentInfo.sort(key=self._getRecordDate, reverse=True)
@@ -309,34 +310,42 @@ class InfoFetcher_xAI(InfoFetcher):
 
         resp_clean = response.replace("\r","").replace("\n","")
 
-        logger.info(f"XAI prompt ({len(prompt)} characters) responded in {(t_f - t_i).total_seconds():0} seconds :  {resp_clean[:20]}... ({len(resp_clean)} characters)")
+        response_time = (t_f - t_i).total_seconds()
+
+        logger.info(f"XAI prompt ({len(prompt)} characters) responded in {response_time:,.0f} seconds :  {resp_clean[:20]}... ({len(resp_clean)} characters)")
 
         return response
 
     def _processPrompt(self, prompt)->str:
         '''Send a prompt to XAI API and return the response'''
                     # retrieve self.API_key from environment variables and set it for the XAI client
+        try:
+            # instantiate XAI Client
+            client = xai.Client(api_key=self.API_key)
 
-        # instantiate XAI Client
-        client = xai.Client(api_key=self.API_key)
+            # create XAI chat with web search and X search capabilities
+            tools=[xai_tools.web_search(), xai_tools.x_search()]
+            chat = client.chat.create(model=self.model, store_messages=True, tools=tools, max_tokens=10000)
 
-        # create XAI chat with web search and X search capabilities
-        tools=[xai_tools.web_search(), xai_tools.x_search()]
-        chat = client.chat.create(model=self.model, store_messages=True, tools=tools, max_tokens=10000)
+            chat.append(xai_chat.user(prompt))
+            response = chat.sample().content
 
-        chat.append(xai_chat.user(prompt))
-        response = chat.sample()
-        
-        return response.content
+        except Exception as e:
+            logger.error(f"Error processing AI prompt {self.sourceName}/{self.model}: {e}")
+            response = ""
+
+        return response
 
     def recordAsSolariMessage(self, record: dict, panelSize: tuple[int, int]) -> Message:
-        news, source, published, link = [record[field] for field in ('news', 'source', 'published', 'link')]
+      
+        news, source, link = [record.get(field,'') for field in ('news', 'source', 'link')]
         
-        dt_utc =  datetime.fromisoformat(published)
+        dt_utc =  datetime.fromisoformat(record['published']) if 'published' in record else datetime.now(timezone.utc)
 
-        content = news
+        displayTime = '0 second' if len(news) < 3 else '45 seconds'
 
-        return Message.create(dt_utc, content, source, displayTime='30 seconds', link=link, panelSize=panelSize)
+        return Message.create(dt_utc, news, source, displayTime=displayTime, link=link, panelSize=panelSize)
+
 class NewsFetcher(InfoFetcher):
 
     
@@ -413,11 +422,13 @@ class NewsFetcher(InfoFetcher):
         return datetime.fromisoformat(ts_str)
 
     def recordAsSolariMessage(self, record, panelSize:tuple[int,int]) -> Message:
-        source, title, published, link = [record[field] for field in ('source', 'title', 'published', 'link')]
+        source, news, link = [record.get(field,'') for field in ('source', 'title', 'link')]
         
-        dt_utc =  datetime.fromisoformat(published)
+        dt_utc =  datetime.fromisoformat(record['published']) if 'published' in record else datetime.now(timezone.utc)
 
-        return Message.create(dt_utc, title, source, displayTime='30 seconds', link=link, panelSize=panelSize)
+        displayTime = '0 second' if len(news) < 3 else '45 seconds'    
+
+        return Message.create(dt_utc, news, source, displayTime=displayTime, link=link, panelSize=panelSize)
     
 
 

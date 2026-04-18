@@ -15,22 +15,22 @@ logger.debug(f"Available info sources: {[newsSource.name for newsSource in InfoS
 kiviInterface = KiviGraphicInterface()
 
 sources = [newsSource for newsSource in InfoSource if newsSource.name in [
-    # 'DW',
+    'DW',
     'ZEROHEDGE',
-    # 'NHK_WORD',
+    'NHK_WORD',
     # 'GLOBO',
-    # 'VATICAN_NEWS',
+    'VATICAN_NEWS',
     # 'LA_CROIX',
     'NY_TIMES', 
-    # 'CGTN', 
+    'CGTN', 
     'FRANCE_24', 
-    # 'TIME_OF_INDIA', 
-    # 'BBC', 
-    # 'AL_JAZEERA', 
-    # 'TASS', 
-    # 'THE_GUARDIAN',
-    # 'PR_NEWSWIRE',
-    # 'AP_NEWS',
+    'TIME_OF_INDIA', 
+    'BBC', 
+    'AL_JAZEERA', 
+    'TASS', 
+    'THE_GUARDIAN',
+    'PR_NEWSWIRE',
+    'AP_NEWS',
     # 'MOSCOW_TIME',
     ]]
 
