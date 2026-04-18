@@ -182,7 +182,7 @@ sequenceDiagram
 
   <a href="https://youtu.be/Kv-tkJvaFZI">
     <p align="center">
-    <img src="/Users/alex/Documents/CODE/PUBLISHED/solari/resources/images/Screenshot Solari.png" alt="Watch the demo" height="300">
+    <img src="resources/images/Screenshot Solari.png" alt="Watch the demo" height="300">
     </p>
   </a>
 
