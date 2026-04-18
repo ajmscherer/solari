@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RESOURCES_DIR = BASE_DIR / "resources"
 PROMPT_DIR = RESOURCES_DIR / "prompts"
 CACHE_DIR = BASE_DIR / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 LOG_DIR = BASE_DIR / "logs"
@@ -55,7 +56,7 @@ logger = Helper.supplyLogger()
 ''' HELPER CLASS '''
 class Scheduler:
 
-    def __init__(self, targetFunction,  interval, limit = None) -> None:
+    def __init__(self, name, targetFunction,  interval, limit = None) -> None:
         '''
         - targetFunction : function or method to be called
         - interval : number of minutes between two calls of targetFunction
@@ -67,10 +68,11 @@ class Scheduler:
         self.interval = interval
         self.limit = limit
         self.running = False
+        self.name = name
 
     def start(self):
         self.running = True
-        logger.info(f"Scheduler {self} started")
+        logger.info(f"{self.name} started (scheduler)")
 
         self.counter = 0
 
@@ -78,7 +80,7 @@ class Scheduler:
             self.counter +=1
                 
             # log update
-            linfo = f"Scheduler {self} calls {self.targetFunction} #{self.counter}"
+            linfo = f"{self.name} calls {self.targetFunction} #{self.counter}"
             if self.limit:
                 linfo += f" OF {self.limit}"
             logger.debug(linfo)
@@ -100,7 +102,7 @@ class Scheduler:
                 sc.run_pending()
                 time.sleep(1)
         
-        thread = Thread(target=run_scheduler, daemon=True)
+        thread = Thread(target=run_scheduler,name=self.name, daemon=True)
         thread.start()
    
     def stop(self):
