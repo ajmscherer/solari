@@ -4,9 +4,9 @@
 ## A simple Python program that emulates the old Solari panels which were place in airports and other public places to provide information such as flight departures and arrivals
 
 <p align="center">
-	<img src="resources/images/Airport%20hall.jpg" alt="Airport hall" height="380">
+	<img src="resources/images/Airport%20hall.jpg" alt="Airport hall" height="300">
 	&nbsp;&nbsp;&nbsp;&nbsp;
-	<img src="resources/images/Panel%20closeup.jpg" alt="Panel closeup" height="380">
+	<img src="resources/images/Panel%20closeup.jpg" alt="Panel closeup" height="300">
 </p>
 
 A demo youtube video is available below.
