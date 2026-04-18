@@ -236,7 +236,7 @@ class GlyphPort:
         if self.sound:
             if GlyphPort.MAX_CLICK>0:
                 GlyphPort.MAX_CLICK -= 1
-                sound_thread = threading.Thread(target=makeSound)
+                sound_thread = threading.Thread(name='makeSound',target=makeSound)
                 sound_thread.start()
 
     def setNewTargetGlyph(self, glyphCode):
@@ -638,8 +638,9 @@ class SolariApp(GraphicApp):
         message = self.feeder.next()
         
         # have the method call each other again for the next message to display
-        timer = threading.Timer(message.displayTimeInSeconds, self._cycle)
+        timer = threading.Timer(interval=message.displayTimeInSeconds, function= self._cycle)
         timer.daemon = True
+        timer.name = "FeederTimer"
         timer.start()
 
 

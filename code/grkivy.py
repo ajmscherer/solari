@@ -8,6 +8,7 @@ import kivy.clock
 import kivy.core.window
 
 import datetime
+import threading
 
 class KiviGraphicInterface(grabst.GraphicInterface):
 
@@ -60,6 +61,7 @@ class KiviGraphicInterface(grabst.GraphicInterface):
                   
                         kivy.graphics.PopMatrix()
 
+        # schedule the update function to be called at the specified frame rate
         kivy.clock.Clock.schedule_interval(update, 1.0 / framePerSecond)
         
         # set window size based on size requirement
@@ -70,6 +72,7 @@ class KiviGraphicInterface(grabst.GraphicInterface):
         # bind keyboard events
         kivy.core.window.Window.bind(on_key_down=self._on_keyboard)
 
+        threading.current_thread().name = "KivyMain"
         self.kivi_app.run()
 
     def toggleFullScreen(self):

@@ -146,7 +146,7 @@ class InfoFetcher(ABC):
 
     def start(self, limit = None):
         '''schedule regular info fetching'''
-        self._scheduler = Scheduler(self.fetch , interval=self.fetchIntervalMinutes, limit=limit)
+        self._scheduler = Scheduler(name=f"fetcher {self.sourceName}", targetFunction=self.fetch , interval=self.fetchIntervalMinutes, limit=limit)
         self._scheduler.start()
 
     def stop(self):
@@ -214,6 +214,7 @@ class InfoFetcher(ABC):
             deduped.append(record)
 
         aggregate_path = self._getCacheFilePath()
+        aggregate_path.parent.mkdir(parents=True, exist_ok=True)
         aggregate_path.write_text(json.dumps(deduped, indent=2, ensure_ascii=False), encoding='utf-8')
 
     def _record_signature(self, record):
