@@ -27,6 +27,7 @@ If you want the quick version: Solari launches a split-flap style board, gathers
 - News sourced from rss feeds and AI backed news agent 
 - A modular structure separating rendering, message feeding, and data fetching
 - Configurable panel dimensions and display behavior
+- Interact with the panel at runtime with keyboard
 - Background fetching with local cache files to avoid re-fetching everything every time
 - A codebase designed as much for learning (threads, object structure), experimentation, and exploration for further developpments
 
@@ -96,21 +97,28 @@ python code/solari_run.py
 
 On startup, Solari builds the display, initializes the selected information sources, starts background fetching, and begins animating messages onto the board.
 
+At runtime, you can press `f` to toggle fullscreen mode. You can also press `l` to open the link associated with the currently displayed message, when that message includes one.
+
+
 
 ### Configuration of the news gather process
 
 News can come from two kinds of sources: traditional RSS feeds and an AI-backed news agent. Both are handled through the same fetcher pipeline, cached locally, and then converted into fixed-width messages that can be displayed on the Solari board.
 
-#### RSS Feeds
+#### <U>RSS Feeds</U>
 
 RSS feeds provide the project's most direct news sources. Each feed is fetched from its published RSS endpoint, parsed into individual records, timestamped, and stored in the local cache. Solari can then rotate through those items and display them as board messages while preserving the original source identity.
 
 This approach keeps the content path simple and inspectable: the application reads what the publisher exposes, normalizes the result, and turns the item title into a message suitable for the panel. It is a straightforward way to connect the display to real-world news outlets without introducing additional editorial logic.
 
+If you want to add, remove, or change RSS sources, edit the `InfoSource` entries in `code/infofetch.py`, where each source is mapped to its RSS URL and timezone. To choose which of those feeds are actually shown when the app runs, update the `sources` list in `code/solari_run.py`.
 
-#### AI Platform
+
+#### <U>AI Platform</U>
 
 The AI-backed source uses a prompt-driven fetcher rather than a fixed RSS endpoint. In the current code, that means sending a news-gathering prompt to xAI, receiving a structured response, and converting the returned items into the same internal record format used by RSS sources.
+
+The prompt text itself is stored in `resources/prompts/news_gathering.txt`. If you want to change the AI source's instructions or editorial style, that is the file to edit.
 
 This makes the AI path useful when you want curated or synthesized news selection rather than raw feed output. Because it flows through the same caching, rotation, and display pipeline as the RSS sources, it can coexist with them naturally while still being configured separately through the API key and prompt file.
 
