@@ -24,12 +24,12 @@ If you want the quick version: Solari launches a split-flap style board, gathers
 
 - Split-flap inspired display animation with a strong retro information-board feel
 - Live message rotation built from multiple news and information sources
-- News sourced from rss feeds and AI backed news agent 
+- News sourced from RSS feeds and an AI-backed news agent
 - A modular structure separating rendering, message feeding, and data fetching
 - Configurable panel dimensions and display behavior
-- Interact with the panel at runtime with keyboard
+- Interact with the panel at runtime using the keyboard
 - Background fetching with local cache files to avoid re-fetching everything every time
-- A codebase designed as much for learning (threads, object structure), experimentation, and exploration for further developpments
+- A codebase designed as much for learning (threads, object structure), experimentation, and exploration for further developments
 
 ## Quick Start
 
@@ -97,11 +97,11 @@ python code/solari_run.py
 
 On startup, Solari builds the display, initializes the selected information sources, starts background fetching, and begins animating messages onto the board.
 
-At runtime, you can press `f` to toggle fullscreen mode. You can also press `l` to open the link associated with the currently displayed message, when that message includes one.
+At runtime, you can press `f` to toggle fullscreen mode. You can also press `l` to open the link associated with the currently displayed message when that message includes one.
 
 
 
-### Configuration of the news gather process
+### Configuration of the news gathering process
 
 News can come from two kinds of sources: traditional RSS feeds and an AI-backed news agent. Both are handled through the same fetcher pipeline, cached locally, and then converted into fixed-width messages that can be displayed on the Solari board.
 
@@ -137,11 +137,11 @@ That split between display logic, feeder logic, and fetch logic is what makes th
 
 This project can be adapted to other information sources:
 - weather
-- live fligth information
+- live flight information
 - famous quotes
 - calendar reminders
 - stock prices
-- etc ...
+- etc.
 
 ## Project Structure
 
