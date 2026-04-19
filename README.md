@@ -50,19 +50,7 @@ The repository now includes a `requirements.txt` for the main application (`sola
 python -m pip install -r requirements.txt
 ```
 
-For reference, that file currently includes these third-party libraries:
-
-- `requests`
-- `schedule`
-- `feedparser`
-- `python-dateutil`
-- `python-dotenv`
-- `kivy`
-- `Pillow`
-- `simpleaudio`
-- `xai-sdk`
-
-To check whether a package is already available in the active environment, use:
+To check whether a package is already available in the active environment, use (replace Pillow by the desired package name):
 
 ```bash
 python -m pip show Pillow
@@ -83,7 +71,8 @@ The committed example file currently includes a placeholder for:
 
 - `XAI_API_KEY`
 
-That key is used by the main information-fetching flow. If you leave it unset, the xAI-backed fetcher will not be able to authenticate.
+That key is used by the main information-fetching flow. If you leave it unset, the xAI-backed fetcher will not be able to authenticate. 
+If you need a key, go to https://console.x.ai/ to setup a xAI account. Then obtain a key and copy it in your .env file. Note that, if not xAI key is provided, the Solari panel will work but will not generate xAI news content.
 
 The repository also contains `mistral_test.py`, which reads `MISTRAL_API_KEY`, but that variable is not included in `.env.example`. If you want to run that script, add `MISTRAL_API_KEY=...` to your local `.env` manually.
 
