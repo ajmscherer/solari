@@ -1,0 +1,10 @@
+# Core runtime dependencies for the Solari application.
+requests==2.33.1
+schedule==1.2.2
+feedparser==6.0.12
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+Kivy==2.3.1
+Pillow==12.2.0
+simpleaudio==1.0.4
+xai-sdk==1.11.0
