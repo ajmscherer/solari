@@ -44,7 +44,7 @@ source .venv/bin/activate
 
 Install the Python packages required by the project in that environment.
 
-For the main application (`code/solari_run.py`), the current code imports these third-party libraries:
+For the main application (`solari_run.py`), the current code imports these third-party libraries:
 
 - `requests`
 - `schedule`
@@ -85,7 +85,7 @@ The committed example file currently includes a placeholder for:
 
 That key is used by the main information-fetching flow. If you leave it unset, the xAI-backed fetcher will not be able to authenticate.
 
-The repository also contains `code/mistral_test.py`, which reads `MISTRAL_API_KEY`, but that variable is not included in `.env.example`. If you want to run that script, add `MISTRAL_API_KEY=...` to your local `.env` manually.
+The repository also contains `mistral_test.py`, which reads `MISTRAL_API_KEY`, but that variable is not included in `.env.example`. If you want to run that script, add `MISTRAL_API_KEY=...` to your local `.env` manually.
 
 ### Run Solari
 
@@ -111,7 +111,7 @@ RSS feeds provide the project's most direct news sources. Each feed is fetched f
 
 This approach keeps the content path simple and inspectable: the application reads what the publisher exposes, normalizes the result, and turns the item title into a message suitable for the panel. It is a straightforward way to connect the display to real-world news outlets without introducing additional editorial logic.
 
-If you want to add, remove, or change RSS sources, edit the `InfoSource` entries in `code/infofetch.py`, where each source is mapped to its RSS URL and timezone. To choose which of those feeds are actually shown when the app runs, update the `sources` list in `code/solari_run.py`.
+If you want to add, remove, or change RSS sources, edit the `InfoSource` entries in `infofetch.py`, where each source is mapped to its RSS URL and timezone. To choose which of those feeds are actually shown when the app runs, update the `sources` list in `solari_run.py`.
 
 
 #### <U>AI Platform</U>
