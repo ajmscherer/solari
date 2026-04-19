@@ -1,3 +1,33 @@
+# solari - a simple dashboard app with a Solari board style interface
+# Copyright (C) 2024-2026 Alex Scherer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# This module defines the InfoFetcher class and its subclasses. An InfoFetcher is a class 
+# that fetches information from a source and provides it in a format that can be displayed 
+# on the panel. The information is defined as a list of records, where each record is a 
+# dictionary that contains the information to display. The InfoFetcher class provides 
+# methods to fetch the information, to get the most recent information, to convert a record 
+# to a message that can be displayed on the panel, and to manage the cache of the fetched 
+# information. The InfoFetcher class is an abstract class that needs to be subclassed to 
+# implement the specific fetching logic for each source of information. The subclass needs 
+# to implement the _fetch method that fetches the information from the source and returns 
+# it as a list of records, and the _getRecordDate method that returns the date of a record 
+# as a datetime object. The InfoFetcher class also provides a start method that schedules 
+# regular fetching of the information at a specified interval, and a stop method that stops 
+# the scheduled fetching.
+
 from enum import Enum
 from pathlib import Path
 import os

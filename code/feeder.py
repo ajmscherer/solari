@@ -1,3 +1,27 @@
+# solari - a simple dashboard app with a Solari board style interface
+# Copyright (C) 2024-2026 Alex Scherer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# This module defines the Feeder class and its subclasses.
+# A Feeder is responsible for providing messages to be displayed on the Solari
+# board. The Feeder class is an abstract class that defines the interface for
+# all feeders. The FeederStatic class is a simple feeder that returns a static
+# string. The FeederInfo class is a feeder that fetches information from a news
+# source and formats it as a message. The FeederMix class is a feeder that
+# combines multiple feeders and rotates through them.
+
 from abc import  abstractmethod
 from common import Message, Helper
 from infofetch import InfoFetcher, NewsFetcher

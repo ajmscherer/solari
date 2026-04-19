@@ -1,10 +1,30 @@
-'''
-Code that simulates a Split-Flap or Solari board
+# solari - a simple dashboard app with a Solari board style interface
+# Copyright (C) 2024-2026 Alex Scherer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-A Scherer
-2024 
-
-'''
+# This module defines the Glyph, GlyphSet, GlyphPort, GlyphRanker and GlyphPanel classes. 
+# The Glyph class is an abstract class that defines the interface for all glyphs. A glyph 
+# is a symbol that can be displayed on the panel. It can be a character, a number, 
+# a symbol, etc. It is defined by its size and the images to display for each half of the 
+# panel (top and bottom). The images are built on demand and cached for future use. The 
+# images are built by the buildImages method that need to be implemented by the subclass. 
+# The getImages method returns the images to display for each half of the panel. The images 
+# are stored in a dictionary with the keys being the image type (whole, top, bottom) and 
+# the values being the images to display for each half of the panel. The whole image is 
+# used when the panel is not rotating, the top and bottom images are used when the panel 
+# is rotating. 
 
 import unicodedata
 
