@@ -44,7 +44,13 @@ source .venv/bin/activate
 
 Install the Python packages required by the project in that environment.
 
-For the main application (`solari_run.py`), the current code imports these third-party libraries:
+The repository now includes a `requirements.txt` for the main application (`solari_run.py`). Install everything with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+For reference, that file currently includes these third-party libraries:
 
 - `requests`
 - `schedule`
@@ -55,12 +61,6 @@ For the main application (`solari_run.py`), the current code imports these third
 - `Pillow`
 - `simpleaudio`
 - `xai-sdk`
-
-You can install them in one step with:
-
-```bash
-python -m pip install requests schedule feedparser python-dateutil python-dotenv kivy Pillow simpleaudio xai-sdk
-```
 
 To check whether a package is already available in the active environment, use:
 
