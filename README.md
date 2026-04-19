@@ -13,7 +13,7 @@ A Python project that recreates the look and rhythm of classic split-flap Solari
 A short demo video is available here. Just click on the picture to start the YouTube video.
 
 <p align="center">
-  <a href="https://youtu.be/Kv-tkJvaFZI">
+  <a href="https://youtu.be/iOUrp0WD6OI">
     <img src="resources/images/Screenshot Solari.png" alt="Watch the demo" height="300">
   </a>
 </p>
