@@ -5,7 +5,7 @@ A Python project that recreates the look and rhythm of classic split-flap Solari
 <p align="center">
 	<img src="resources/images/Airport hall.jpg" alt="Airport hall" height="300">
 	&nbsp;&nbsp;&nbsp;&nbsp;
-	<img src="resources/images/Panel%20closeup.jpg" alt="Panel closeup" height="300">
+	<img src="resources/images/Panel closeup.jpg" alt="Panel closeup" height="300">
 </p>
 
 ## Demo
