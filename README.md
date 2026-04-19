@@ -3,9 +3,9 @@
 A Python project that recreates the look and rhythm of classic split-flap Solari boards, the kind once found in airports and train stations, and feeds them with live information. The result is part nostalgic display experiment, part small information dashboard, and part exercise in building a visual system that feels mechanical even though it is entirely software.
 
 <p align="center">
-	<img src="resources/images/Airport%20hall.jpg" alt="Airport hall" height="300">
+	<img src="resources/images/Airport hall.jpg" alt="Airport hall" height="300">
 	&nbsp;&nbsp;&nbsp;&nbsp;
-	<img src="resources/images/Panel%20closeup.jpg" alt="Panel closeup" height="300">
+	<img src="resources/images/Panel closeup.jpg" alt="Panel closeup" height="300">
 </p>
 
 ## Demo
