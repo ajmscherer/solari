@@ -1,6 +1,6 @@
 # solari
 
-A Python project that recreates the look and rhythm of classic split-flap Solari boards, the kind once found in airports and train stations, and feeds them with live information. The result is part nostalgic display experiment, part small information dashboard, and part exercise in building a visual system that feels mechanical even though it is entirely software.
+**A Python-powered split-flap display that brings back the nostalgic clack-clack-clack of airport and train station boards — now with live news, an xAI-powered agent, and smooth animations.**
 
 <p align="center">
 	<img src="resources/images/Airport hall.jpg" alt="Airport hall" height="300">
@@ -14,7 +14,7 @@ A short demo video is available here. Just click on the picture to start the You
 
 <p align="center">
   <a href="https://youtu.be/iOUrp0WD6OI">
-    <img src="resources/images/Screenshot Solari.png" alt="Watch the demo" height="300">
+    <img src="resources/images/Solari Demo.gif" alt="Watch the demo" height="300">
   </a>
 </p>
 
@@ -29,16 +29,21 @@ If you want the quick version: Solari launches a split-flap style board, gathers
 - Configurable panel dimensions and display behavior
 - Interact with the panel at runtime using the keyboard
 - Background fetching with local cache files to avoid re-fetching everything every time
-- A codebase designed as much for learning (threads, object structure), experimentation, and exploration for further developments
+- A codebase designed for learning and experimenting: threads, object structure, AI API calls, etc.
+- Flexible and ready for further developments
 
 ## Quick Start
 
 ### Prepare a virtual environment
 
-Create and activate a Python virtual environment in the project root.
+Create a Python virtual environment in the project root.
 
 ```bash
 python3 -m venv .venv
+```
+
+Select the newly created environment
+```bash
 source .venv/bin/activate
 ```
 
@@ -50,16 +55,8 @@ The repository now includes a `requirements.txt` for the main application (`sola
 python -m pip install -r requirements.txt
 ```
 
-To check whether a package is already available in the active environment, use (replace Pillow by the desired package name):
 
-```bash
-python -m pip show Pillow
-```
-
-If the package is installed, `pip show` prints its metadata and install location. If it is not installed, it prints a warning such as `Package(s) not found: Pillow`.
-
-
-### Configure environment variables
+### Configure environment variables (can be skipped if AI content not needed)
 
 Copy the example environment file and add any API keys you want to use.
 
@@ -74,8 +71,6 @@ The committed example file currently includes a placeholder for:
 That key is used by the main information-fetching flow. If you leave it unset, the xAI-backed fetcher will not be able to authenticate. 
 If you need a key, go to https://console.x.ai/ to setup a xAI account. Then obtain a key and copy it in your .env file. Note that, if not xAI key is provided, the Solari panel will work but will not generate xAI news content.
 
-The repository also contains `mistral_test.py`, which reads `MISTRAL_API_KEY`, but that variable is not included in `.env.example`. If you want to run that script, add `MISTRAL_API_KEY=...` to your local `.env` manually.
-
 ### Run Solari
 
 Start the main application from the project root.
@@ -87,7 +82,6 @@ python code/solari_run.py
 On startup, Solari builds the display, initializes the selected information sources, starts background fetching, and begins animating messages onto the board.
 
 At runtime, you can press `f` to toggle fullscreen mode. You can also press `l` to open the link associated with the currently displayed message when that message includes one.
-
 
 
 ### Configuration of the news gathering process
@@ -103,7 +97,7 @@ This approach keeps the content path simple and inspectable: the application rea
 If you want to add, remove, or change RSS sources, edit the `InfoSource` entries in `infofetch.py`, where each source is mapped to its RSS URL and timezone. To choose which of those feeds are actually shown when the app runs, update the `sources` list in `solari_run.py`.
 
 
-#### <U>AI Platform</U>
+#### <U>AI backed content</U>
 
 The AI-backed source uses a prompt-driven fetcher rather than a fixed RSS endpoint. In the current code, that means sending a news-gathering prompt to xAI, receiving a structured response, and converting the returned items into the same internal record format used by RSS sources.
 
