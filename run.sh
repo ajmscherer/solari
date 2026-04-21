@@ -4,12 +4,8 @@
 echo "🚀 Launching Solari split-flap board..."
 
 # Activate virtual environment if it exists
-if [ -d ".venv" ]; then
-  echo "✅ Activating virtual environment..."
-  source .venv/bin/activate
-else
-  echo "⚠️  No .venv folder found. Running with system Python (make sure dependencies are installed)."
-fi
+echo "✅ Activating virtual environment..."
+source .venv/bin/activate
 
 # Run the app
 python code/solari_run.py
