@@ -32,7 +32,7 @@ class KiviGraphicInterface(grabst.GraphicInterface):
         super().__init__()
         self.kivi_app= kivy.app.App()
 
-    def start(self, drawFunction, sizeRequirement, framePerSecond):
+    def start(self, drawFunction, sizeRequirement, framePerSecond, fullscreen=False):
         
         def update(timeInterval):
 
@@ -83,7 +83,11 @@ class KiviGraphicInterface(grabst.GraphicInterface):
         # set window size based on size requirement
         window = kivy.core.window.Window
         if sizeRequirement:
-            window.size = sizeRequirement 
+            window.size = sizeRequirement
+
+        # apply fullscreen if requested
+        if fullscreen:
+            window.fullscreen = True
 
         # bind keyboard events
         kivy.core.window.Window.bind(on_key_down=self._on_keyboard)

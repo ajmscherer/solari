@@ -79,6 +79,12 @@ Start the main application from the project root.
 python code/solari_run.py
 ```
 
+To start directly in fullscreen mode, pass the `-fs` flag:
+
+```bash
+python code/solari_run.py -fs
+```
+
 On startup, Solari builds the display, initializes the selected information sources, starts background fetching, and begins animating messages onto the board.
 
 At runtime, you can press `f` to toggle fullscreen mode. You can also press `l` to open the link associated with the currently displayed message when that message includes one.

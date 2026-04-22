@@ -17,11 +17,19 @@
 # This module defines the main entry point for the SolariApp. It sets up the 
 # graphic interface, the feeder, and runs the app.
 
+import argparse
+
 from common import Helper
 from infofetch import InfoSource
 from feeder import FeederMix
 from grkivy import KiviGraphicInterface
 from solari import DEFAULT_PANEL_SIZE, SolariApp
+
+
+# parse command-line arguments
+parser = argparse.ArgumentParser(description='Solari split-flap board')
+parser.add_argument('-fs', '--fullscreen', action='store_true', help='Start in fullscreen mode')
+args = parser.parse_args()
 
 
 # get Logger
@@ -63,7 +71,7 @@ feeder2 = FeederMix.buildFromInfoSource(InfoSource.XAI_NEWS_AGENT, panelSize=pan
 feeder = FeederMix([feeder1, feeder2])
 
 # create the SolariApp
-solari = SolariApp(graphicInterface=kiviInterface,feeder=feeder, panelSize=panelSize)
+solari = SolariApp(graphicInterface=kiviInterface, feeder=feeder, panelSize=panelSize)
 
 # run the app
-solari.run()
+solari.run(fullscreen=args.fullscreen)
