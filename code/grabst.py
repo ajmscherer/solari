@@ -138,7 +138,7 @@ class GraphicInterface(ABC):
         self.onKeyEvent = Event()
 
     @abstractmethod
-    def start(self, drawFunction, sizeRequirement, framePerSecond):
+    def start(self, drawFunction, sizeRequirement, framePerSecond, fullscreen=False):
         '''Start the underlying graphic system'''
 
     @abstractmethod
@@ -176,9 +176,9 @@ class GraphicApp(ABC):
         self.graphicInterface.setTitle(title)
 
 
-    def run(self):
+    def run(self, fullscreen=False):
         '''Start the app'''
-        self.graphicInterface.start(drawFunction=self.drawMainWindow, sizeRequirement=self.sizeRequirement, framePerSecond=self.framePerSecond)
+        self.graphicInterface.start(drawFunction=self.drawMainWindow, sizeRequirement=self.sizeRequirement, framePerSecond=self.framePerSecond, fullscreen=fullscreen)
 
     def drawMainWindow(self, canvas, time):
         '''Draw the main window. This method is called by the graphic interface'''
