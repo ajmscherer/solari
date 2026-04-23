@@ -10,7 +10,9 @@
             "type":"debugpy",
             "request":"launch",
             "program":"code/solari_run.py",
-            "console":"integratedTerminal"},
+            "console":"integratedTerminal",
+            // "args": ["-fs"]
+        },
 
 
         {

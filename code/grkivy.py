@@ -15,6 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # 
 
+import os
+os.environ.setdefault('KIVY_NO_ARGS', '1')
+
 import grabst
 import kivy
 import kivy.app
