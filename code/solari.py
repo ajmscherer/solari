@@ -357,7 +357,7 @@ class GlyphRanker:
 
     def getRankings(self):
         if not self.cacheFunctionDict:
-            funList = (
+            funList1 = (
                         self.default,
                         self.immediate, 
                         self.regular , 
@@ -366,17 +366,28 @@ class GlyphRanker:
                         self.topLeft,
                         self.circleOut, 
                         self.circleIn)
-            self.cacheFunctionDict = { function.__name__:
-                                        self.getIndex(function) for function in funList }
+            cacheFunctionDict1 = { function.__name__:
+                                        self.getIndex(function) for function in funList1 }
+            funList2 = [                        
+                    self.spirale,
+                    ]
+            cacheFunctionDict2 = { fun.__name__: fun() for fun in funList2}
+
+            cacheFunctionDict1.update(cacheFunctionDict2)
+            
+            self.cacheFunctionDict = cacheFunctionDict1
+
         return self.cacheFunctionDict
 
     def getIndex(self, function):
         glyph_list = []
         for row in range(self.rowCount): 
             for col in range(self.rowLength):
-                glyph_list.append((col, row, *function(col, row)))
+                tple = (col, row, *function(col, row))
+                glyph_list.append(tple)
         sl = sorted(glyph_list, key=lambda element:element[-1])
-        return [element[:-1] for element in sl]
+        result = [element[:-1] for element in sl]
+        return result
 
     def default(self, col, row):
         return self.downByLine(col, row)
@@ -407,6 +418,39 @@ class GlyphRanker:
     
     def circleIn(self, col, row):
         return 1, -self.circleOut(col, row)[1]
+
+    # Ranker type 2
+
+    def spirale(self):
+        rowLength, rowCount = self.rowLength, self.rowCount
+        x1,y1 = 0, 0
+        x2, y2 = rowLength-1, rowCount-1
+        x,y = 0,0,
+        direction = [(+1,0),(0,+1),(-1,0),(0,-1)]
+        rot = 0
+        rtuples = []
+        timespan = 1
+        for k in range(rowLength*rowCount):
+            rtuples.append((x,y,timespan))
+            xi, yi = direction[rot % len(direction)]
+            x+=xi
+            y+=yi
+            if x==x2 and xi>0:
+                y1+=1
+                rot+=1
+            elif y==y2 and yi>0:
+                x2-=1
+                rot+=1
+            elif x==x1 and xi<0:
+                y2-=1
+                rot+=1
+            elif y == y1 and yi<0:
+                x1+=1
+                rot+=1
+
+        return rtuples
+            
+
 
 class GlyphPanel:
 
@@ -475,11 +519,7 @@ class GlyphPanel:
         rankings = self.rankings
 
         ranker = random.choice(list(rankings.values()))
-
-        '''cols, rows = self.panelDimension
-        text2 = text.split("<br")
-        text2 = "<br>".join([f"{t: >{cols}}" for t in text2])
-        text2 = text2.replace(" ","A")'''
+        ranker = rankings['spirale']
 
         self.updateText_(text, ranker )  # update the text on the panel with the original text after a delay. This is useful to trigger the animation and sound for the update of the text by advancing one glyph on each port. The text will be updated in the next draw cycle.
 
