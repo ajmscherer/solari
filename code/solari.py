@@ -348,16 +348,24 @@ class GlyphPort:
 
 
 class GlyphRanker:
+    '''A GlyphRanker is a class that defines different rankers. A ranker dictates the sequence (order and timing) each glyph is refreshed on the panel. '''
 
     def __init__(self, rowLength, rowCount) -> None:
-
+        '''
+        rowLength: the number of columns in the panel
+        rowCount: the number of rows in the panel
+        '''
+        
         self.rowLength = rowLength
         self.rowCount = rowCount
         self.cacheFunctionDict = None
 
     def getRankings(self):
+        '''Get the rankings for the panel. The rankings are stored in a dictionary with the keys being the ranker name and the values being the rankings. The rankings are built on demand and cached for future use.
+        '''
+
         if not self.cacheFunctionDict:
-            funList1 = (
+            funType1 = (
                         self.default,
                         self.immediate, 
                         self.regular , 
@@ -365,17 +373,17 @@ class GlyphRanker:
                         self.rightByColumn,
                         self.topLeft,
                         self.circleOut, 
-                        self.circleIn)
-            cacheFunctionDict1 = { function.__name__:
-                                        self.getIndex(function) for function in funList1 }
-            funList2 = [                        
-                    self.spirale,
-                    ]
-            cacheFunctionDict2 = { fun.__name__: fun() for fun in funList2}
-
-            cacheFunctionDict1.update(cacheFunctionDict2)
+                        self.circleIn,
+                        )
+            cacheType1 = { function.__name__:
+                                        self.getIndex(function) for function in funType1 }
             
-            self.cacheFunctionDict = cacheFunctionDict1
+            cacheType2 = { fun.__name__: fun() for fun in [
+                self.spirale,
+                ]
+                }
+
+            self.cacheFunctionDict = { **cacheType1, **cacheType2 }
 
         return self.cacheFunctionDict
 
@@ -422,6 +430,8 @@ class GlyphRanker:
     # Ranker type 2
 
     def spirale(self):
+        '''spirale ranker'''
+
         rowLength, rowCount = self.rowLength, self.rowCount
         x1,y1 = 0, 0
         x2, y2 = rowLength-1, rowCount-1
@@ -519,7 +529,6 @@ class GlyphPanel:
         rankings = self.rankings
 
         ranker = random.choice(list(rankings.values()))
-        ranker = rankings['spirale']
 
         self.updateText_(text, ranker )  # update the text on the panel with the original text after a delay. This is useful to trigger the animation and sound for the update of the text by advancing one glyph on each port. The text will be updated in the next draw cycle.
 
