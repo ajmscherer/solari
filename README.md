@@ -49,10 +49,10 @@ source .venv/bin/activate
 
 Install the Python packages required by the project in that environment.
 
-The repository now includes a `requirements.txt` for the main application (`solari_run.py`). Install everything with:
+The Python desktop application now lives in the `python/` directory. Install its dependencies with:
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r python/requirements.txt
 ```
 
 
@@ -71,18 +71,18 @@ The committed example file currently includes a placeholder for:
 That key is used by the main information-fetching flow. If you leave it unset, the xAI-backed fetcher will not be able to authenticate. 
 If you need a key, go to https://console.x.ai/ to setup a xAI account. Then obtain a key and copy it in your .env file. Note that, if not xAI key is provided, the Solari panel will work but will not generate xAI news content.
 
-### Run Solari
+### Run Solari (Desktop)
 
-Start the main application from the project root.
+Start the Python/Kivy desktop application from the project root:
 
 ```bash
-python code/solari_run.py
+python python/solari_run.py
 ```
 
 To start directly in fullscreen mode, pass the `-fs` flag:
 
 ```bash
-python code/solari_run.py -fs
+python python/solari_run.py -fs
 ```
 
 On startup, Solari builds the display, initializes the selected information sources, starts background fetching, and begins animating messages onto the board.
@@ -132,9 +132,17 @@ This project can be adapted to other information sources:
 - stock prices
 - etc.
 
-## Project Structure
+## Repository Structure
 
-All files are located in the `code` directory. A few files are especially important if you want to understand the project quickly.
+This repository supports two platforms from a single codebase:
+
+- `python/` — Desktop application (Windows, Linux, macOS) built with Python + Kivy. All original code and the classic split-flap experience live here.
+- `swift/` — Placeholder for the future native Apple app (iOS, iPadOS, macOS) written in SwiftUI. This will deliver a high-performance, polished experience while optionally reusing the Python content pipeline via a bridge.
+- `resources/` — Shared assets (font, sound, prompts, images) used by both platforms.
+
+### Python Desktop App
+
+The key files inside `python/` are:
 
 - `solari_run.py` is the main entry point. It assembles the graphic interface, chooses the active sources, builds the feeders, and starts the app.
 - `solari.py` contains the core display model: glyphs, ports, panels, timing, and the main application behavior.
