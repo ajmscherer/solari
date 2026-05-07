@@ -12,7 +12,7 @@ if exist .venv (
 )
 
 REM Run the app
-python code\solari_run.py
+python python\solari_run.py
 
 echo.
 pause

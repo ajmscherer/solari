@@ -9,7 +9,7 @@ source .venv/bin/activate
 echo "✅ virtual environment activated!"
 
 # Run the app
-python code/solari_run.py -fs
+python python/solari_run.py -fs
 
 # Optional: keep the terminal open after exit (uncomment if you want)
 # read -p "Press Enter to close..."

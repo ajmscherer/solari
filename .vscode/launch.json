@@ -9,7 +9,7 @@
             "name":"solari_run.py (Python debugger)",
             "type":"debugpy",
             "request":"launch",
-            "program":"code/solari_run.py",
+            "program":"python/solari.py",
             "console":"integratedTerminal",
             // "args": ["-fs"]
         },
@@ -19,7 +19,7 @@
             "name": "grdemo.py (Python debugger)",
             "type": "debugpy",
             "request": "launch",
-            "program": "code/grdemo.py",
+            "program": "python/grdemo.py",
             "console": "integratedTerminal"
         }
     ]
