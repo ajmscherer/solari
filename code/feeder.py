@@ -22,6 +22,8 @@
 # source and formats it as a message. The FeederMix class is a feeder that
 # combines multiple feeders and rotates through them.
 
+from __future__ import annotations
+
 from abc import  abstractmethod
 from common import Message, Helper
 from infofetch import InfoFetcher, NewsFetcher

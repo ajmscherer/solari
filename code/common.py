@@ -15,6 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # This file contains common helper classes and functions used across the Solari application, including logging setup, scheduling, message formatting, and utility functions for time conversion and location fetching. These components are designed to support the main application logic while keeping the code organized and modular.
+from __future__ import annotations
+
 import requests
 from pathlib import Path
 import logging

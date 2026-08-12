@@ -32,7 +32,10 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 
-import simpleaudio
+try:
+    import simpleaudio
+except ImportError:
+    simpleaudio = None
 import threading
 import random
 import time
@@ -188,7 +191,7 @@ class GlyphSet:
     @staticmethod
     def buildStandard(glyphSize, fontSize):
         '''Build a standard set of glyphs that can be displayed on the panel. The glyphs are stored in a dictionary with the keys being the glyph code and the values being the glyph objects. The glyph code is a string that represents the character to display. The glyph objects are built on demand and cached for future use. The glyphs are built by drawing the character on a transparent background. The character is drawn at the center of the canvas. The images are built for each half of the panel (top and bottom) and for the whole panel. The images are built on demand and cached for future use.'''
-        font = PIL.ImageFont.truetype(DEFAULT_FONT_FILE_PATH,size=fontSize) 
+        font = PIL.ImageFont.truetype(str(DEFAULT_FONT_FILE_PATH),size=fontSize) 
         # build char glyphs
         glyphSet = GlyphSet(glyphSize=glyphSize)
         for character in ALL_CHARS:
@@ -497,6 +500,8 @@ class GlyphPanel:
     def getRelaySound(self):
 
         if not self.audioCache:
+            if simpleaudio is None:
+                return None
             self.audioCache = simpleaudio.WaveObject.from_wave_file(str(RELAY_SOUND_PATH))
 
         return self.audioCache

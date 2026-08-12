@@ -28,26 +28,25 @@
 # regular fetching of the information at a specified interval, and a stop method that stops 
 # the scheduled fetching.
 
+from __future__ import annotations
+
 from enum import Enum
 from pathlib import Path
 import os
-import feedparser
 import time
 import hashlib
 from datetime import datetime, timedelta, timezone
-from dateutil import parser as dateparser
 from abc import ABC, abstractmethod
 from common import CACHE_DIR, PROMPT_DIR, Helper, convertDate2String, ValueRotation, Scheduler, getPrompt
 import json
 
-import xai_sdk as xai
-import xai_sdk.chat as xai_chat
-import xai_sdk.tools as xai_tools
-
 from common import time_to_seconds, Message
 
-from dotenv import load_dotenv
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 logger = Helper.supplyLogger()
 
@@ -351,6 +350,9 @@ class InfoFetcher_xAI(InfoFetcher):
         '''Send a prompt to XAI API and return the response'''
                     # retrieve self.API_key from environment variables and set it for the XAI client
         try:
+            import xai_sdk as xai
+            import xai_sdk.chat as xai_chat
+            import xai_sdk.tools as xai_tools
             # instantiate XAI Client
             client = xai.Client(api_key=self.API_key)
 
@@ -390,6 +392,8 @@ class NewsFetcher(InfoFetcher):
         pass
 
     def _fetch(self) -> list:
+        import feedparser
+        from dateutil import parser as dateparser
 
         def get_item_id(entry):
             """Create a unique ID for each news item"""

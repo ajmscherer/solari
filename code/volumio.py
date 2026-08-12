@@ -19,6 +19,8 @@
 # Unlike news feeders, this does not rotate: the board holds one state and
 # only flips when the formatted text changes.
 
+from __future__ import annotations
+
 import time
 from datetime import datetime
 
