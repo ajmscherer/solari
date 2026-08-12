@@ -14,6 +14,15 @@
             // "args": ["-fs"]
         },
 
+        {
+            "name":"Tivoli (Volumio now-playing)",
+            "type":"debugpy",
+            "request":"launch",
+            "program":"code/solari_run.py",
+            "console":"integratedTerminal",
+            "args": ["tivoli", "--host", "192.168.1.4"]
+        },
+
 
         {
             "name": "grdemo.py (Python debugger)",

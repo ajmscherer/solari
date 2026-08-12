@@ -98,10 +98,11 @@ def format_volumio_state(state: dict, panel_size: tuple[int, int]) -> Message:
 
     if state.get('_error'):
         host = _clean(state.get('_host'))
+        reason = _clean(state.get('_reason')) or 'UNAVAILABLE'
         if row_count > 2:
             lines[2] = _fit('VOLUMIO', col_width)
         if row_count > 3:
-            lines[3] = _fit('UNAVAILABLE', col_width)
+            lines[3] = _fit(reason, col_width)
         if row_count > 4 and host:
             lines[4] = _fit(host, col_width)
         if row_count > 0:
@@ -171,6 +172,7 @@ class FeederNowPlaying(Feeder):
         self.poll_seconds = poll_seconds
         self.url = f'http://{host}:{port}/api/v1/getState'
         self._last_fetch = 0.0
+        self._next_delay = poll_seconds
         self._refresh()
 
     def getMessage(self):
@@ -185,21 +187,37 @@ class FeederNowPlaying(Feeder):
         return self.getMessage()
 
     def _maybe_refresh(self):
-        if time.time() - self._last_fetch < self.poll_seconds:
+        if time.time() - self._last_fetch < self._next_delay:
             return
         self._refresh()
+
+    def _classify_error(self, exc: Exception) -> str:
+        text = str(exc)
+        if 'No route to host' in text or '[Errno 65]' in text:
+            return 'NO ROUTE'
+        if 'timed out' in text.lower() or 'timeout' in text.lower():
+            return 'TIMEOUT'
+        if 'Connection refused' in text:
+            return 'REFUSED'
+        return 'UNAVAILABLE'
 
     def _refresh(self):
         self._last_fetch = time.time()
         try:
-            response = requests.get(self.url, timeout=2)
+            response = requests.get(self.url, timeout=3)
             response.raise_for_status()
             state = response.json()
             if not isinstance(state, dict):
                 raise ValueError(f'unexpected getState payload: {type(state)!r}')
+            self._next_delay = self.poll_seconds
         except Exception as exc:
             logger.warning(f'Volumio getState failed at {self.url}: {exc}')
-            state = {'_error': str(exc), '_host': f'{self.host}:{self.port}'}
+            self._next_delay = min(self._next_delay * 2, 15.0)
+            state = {
+                '_error': str(exc),
+                '_reason': self._classify_error(exc),
+                '_host': f'{self.host}:{self.port}',
+            }
         self._message = format_volumio_state(state, self.panelSize)
 
 
