@@ -18,16 +18,26 @@
 # graphic interface, the feeder, and runs the app.
 
 import argparse
+import os
 
-from common import Helper
-from infofetch import InfoSource
-from feeder import FeederMix
-from grkivy import KiviGraphicInterface
-from solari import DEFAULT_PANEL_SIZE, SolariApp
-from volumio import DEFAULT_VOLUMIO_HOST, DEFAULT_VOLUMIO_PORT, FeederNowPlaying
+os.environ.setdefault('KIVY_NO_ARGS', '1')
 
+from volumio import (
+    DEFAULT_VOLUMIO_HOST,
+    DEFAULT_VOLUMIO_PORT,
+    TIVOLI_DISPLAY_SIZE,
+    TIVOLI_FPS,
+    TIVOLI_FONT_SIZE,
+    TIVOLI_GLYPH_PADDING,
+    TIVOLI_GLYPH_SIZE,
+    TIVOLI_OVERSCAN,
+    TIVOLI_PANEL_PADDING,
+    TIVOLI_PANEL_SIZE,
+    FeederNowPlaying,
+)
 
-# parse command-line arguments
+# parse command-line arguments before importing Kivy so graphics config can
+# be applied before the window is created.
 parser = argparse.ArgumentParser(description='Solari split-flap board')
 parser.add_argument(
     'mode',
@@ -52,6 +62,22 @@ args = parser.parse_args()
 if args.mode not in (None, 'tivoli'):
     parser.error(f'unknown mode {args.mode!r}; use "tivoli" or omit for the default news board')
 
+if args.mode == 'tivoli':
+    from kivy.config import Config
+    Config.set('graphics', 'width', str(TIVOLI_DISPLAY_SIZE[0]))
+    Config.set('graphics', 'height', str(TIVOLI_DISPLAY_SIZE[1]))
+    Config.set('graphics', 'fullscreen', 'auto')
+    Config.set('graphics', 'borderless', '1')
+    Config.set('graphics', 'resizable', '0')
+    Config.set('graphics', 'position', 'custom')
+    Config.set('graphics', 'left', '0')
+    Config.set('graphics', 'top', '0')
+
+from common import Helper
+from infofetch import InfoSource
+from feeder import FeederMix
+from grkivy import KiviGraphicInterface
+from solari import DEFAULT_PANEL_SIZE, SolariApp
 
 # get Logger
 logger = Helper.supplyLogger()
@@ -64,10 +90,22 @@ kiviInterface = KiviGraphicInterface()
 
 # define panel size and feeder
 panelSize = DEFAULT_PANEL_SIZE
+app_kwargs = {'graphicInterface': kiviInterface, 'panelSize': panelSize}
 
 if args.mode == 'tivoli':
     logger.info(f"Tivoli mode: Volumio now-playing at {args.host}:{args.port}")
+    panelSize = TIVOLI_PANEL_SIZE
+    kiviInterface.overscan = TIVOLI_OVERSCAN
+    kiviInterface.display_size = TIVOLI_DISPLAY_SIZE
     feeder = FeederNowPlaying(host=args.host, port=args.port, panelSize=panelSize)
+    app_kwargs.update({
+        'panelSize': panelSize,
+        'glyphSize': TIVOLI_GLYPH_SIZE,
+        'fontSize': TIVOLI_FONT_SIZE,
+        'glyphPadding': TIVOLI_GLYPH_PADDING,
+        'panelPadding': TIVOLI_PANEL_PADDING,
+        'framePerSecond': TIVOLI_FPS,
+    })
 else:
     sources = [newsSource for newsSource in InfoSource if newsSource.name in [
         'DW',
@@ -96,7 +134,7 @@ else:
     feeder = FeederMix([feeder1, feeder2])
 
 # create the SolariApp
-solari = SolariApp(graphicInterface=kiviInterface, feeder=feeder, panelSize=panelSize)
+solari = SolariApp(feeder=feeder, **app_kwargs)
 
 # run the app
 solari.run(fullscreen=args.fullscreen)

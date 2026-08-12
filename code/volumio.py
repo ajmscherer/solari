@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import time
+import textwrap
 from datetime import datetime
 
 import requests
@@ -35,6 +36,28 @@ DEFAULT_VOLUMIO_HOST = '127.0.0.1'
 DEFAULT_VOLUMIO_PORT = 3000
 DEFAULT_POLL_SECONDS = 1.5
 LIVE_DISPLAY_TIME = '1 hour'
+
+# Tivoli 640x480 LCD. Equal inset on all sides so the board can be centered;
+# 18 columns uses the leftover width that used to look like a fat left margin.
+# Overscan is (left, bottom, right, top) in framebuffer pixels.
+TIVOLI_DISPLAY_SIZE = (640, 480)
+TIVOLI_OVERSCAN = (28, 28, 28, 28)
+TIVOLI_PANEL_SIZE = (18, 7)
+TIVOLI_GLYPH_PADDING = 2
+TIVOLI_PANEL_PADDING = 4
+TIVOLI_FPS = 12
+
+def _tivoli_glyph_metrics():
+    left, bottom, right, top = TIVOLI_OVERSCAN
+    usable_w = TIVOLI_DISPLAY_SIZE[0] - left - right
+    usable_h = TIVOLI_DISPLAY_SIZE[1] - top - bottom
+    cols, rows = TIVOLI_PANEL_SIZE
+    glyph_w = max(8, (usable_w - (cols - 1) * TIVOLI_GLYPH_PADDING - 2 * TIVOLI_PANEL_PADDING) // cols)
+    glyph_h = max(12, (usable_h - (rows - 1) * TIVOLI_GLYPH_PADDING - 2 * TIVOLI_PANEL_PADDING) // rows)
+    font = max(10, int(glyph_h * 0.70))
+    return (glyph_w, glyph_h), font
+
+TIVOLI_GLYPH_SIZE, TIVOLI_FONT_SIZE = _tivoli_glyph_metrics()
 
 SERVICE_LABELS = {
     'webradio': 'RADIO',
@@ -90,31 +113,55 @@ def _header_line(now: datetime, col_width: int) -> str:
     return day + ' ' * (col_width - len(day) - len(clock)) + clock
 
 
-def format_volumio_state(state: dict, panel_size: tuple[int, int]) -> Message:
-    """Turn a Volumio getState payload into a 30x7-style Solari message."""
-    col_width, row_count = panel_size
-    lines = [''] * row_count
+def _compact_header(now: datetime, col_width: int) -> str:
+    clock = now.strftime('%HH%M')
+    date = f"{now.strftime('%b').upper()} {now.day}"
+    if len(date) + len(clock) + 1 <= col_width:
+        return date + ' ' * (col_width - len(date) - len(clock)) + clock
+    return _fit(clock, col_width)
 
+
+def _status_line(state: dict, service: str, col_width: int) -> str:
+    status = STATUS_LABELS.get(_clean(state.get('status')).lower(), 'STOP')
+    left = status
+    volume = state.get('volume')
+    if isinstance(volume, (int, float)) and not state.get('mute'):
+        left = f"{status} {int(volume)}"
+    right = service
+    gap = col_width - len(left) - len(right)
+    if gap < 1:
+        return _fit(f"{left} {right}", col_width)
+    return left + ' ' * gap + right
+
+
+def format_volumio_state(state: dict, panel_size: tuple[int, int]) -> Message:
+    """Turn a Volumio getState payload into a Solari message."""
+    col_width, row_count = panel_size
+    compact_header = col_width < 22
+    compact_body = row_count <= 5
+    compact = compact_body
+    lines = [''] * row_count
     now = datetime.now().astimezone()
-    lines[0] = _header_line(now, col_width)
+    lines[0] = _compact_header(now, col_width) if compact_header else _header_line(now, col_width)
 
     if state.get('_error'):
         host = _clean(state.get('_host'))
         reason = _clean(state.get('_reason')) or 'UNAVAILABLE'
-        if row_count > 2:
-            lines[2] = _fit('VOLUMIO', col_width)
-        if row_count > 3:
-            lines[3] = _fit(reason, col_width)
-        if row_count > 4 and host:
-            lines[4] = _fit(host, col_width)
-        if row_count > 0:
-            lines[-1] = _fit('ERROR', col_width)
+        body = ['VOLUMIO', reason]
+        if host:
+            body.append(host)
+        start = 1 if compact else 2
+        for offset, item in enumerate(body):
+            row = start + offset
+            if row >= row_count - 1:
+                break
+            lines[row] = _fit(item, col_width)
+        lines[-1] = _fit('ERROR', col_width)
         return Message('<br>'.join(lines), displayTime=LIVE_DISPLAY_TIME)
 
     title = _clean(state.get('title'))
     artist = _clean(state.get('artist'))
     album = _clean(state.get('album'))
-    status = STATUS_LABELS.get(_clean(state.get('status')).lower(), 'STOP')
     service_key = _clean(state.get('service')).lower()
     track_type = _clean(state.get('trackType')).upper()
     service = SERVICE_LABELS.get(service_key, track_type or service_key.upper() or 'VOLUMIO')
@@ -125,34 +172,22 @@ def format_volumio_state(state: dict, panel_size: tuple[int, int]) -> Message:
         album = ''
 
     if not title:
-        title = 'NOTHING PLAYING' if status == 'STOP' else 'UNKNOWN'
+        title = 'NOTHING PLAYING' if _clean(state.get('status')).lower() == 'stop' else 'UNKNOWN'
 
-    body = [title]
-    if artist:
-        body.append(artist)
-    if album and album != artist:
-        body.append(album)
+    body_chunks = []
+    for part in (title, artist, album if album != artist else ''):
+        if part:
+            body_chunks.extend(textwrap.wrap(part, width=col_width) or [part])
 
-    # Date on row 0, blank row 1, then title / artist / album.
-    body_row = 2
-    for item in body:
-        if body_row >= row_count - 1:
+    start = 1 if compact else 2
+    body_limit = row_count - 1
+    for offset, item in enumerate(body_chunks):
+        row = start + offset
+        if row >= body_limit:
             break
-        lines[body_row] = _fit(item, col_width)
-        body_row += 1
+        lines[row] = _fit(item, col_width)
 
-    volume = state.get('volume')
-    left = status
-    if isinstance(volume, (int, float)) and not state.get('mute'):
-        left = f"{status} {int(volume)}"
-
-    right = service
-    gap = col_width - len(left) - len(right)
-    if gap < 1:
-        lines[-1] = _fit(f"{left} {right}", col_width)
-    else:
-        lines[-1] = left + ' ' * gap + right
-
+    lines[-1] = _status_line(state, service, col_width)
     link = _clean(state.get('uri')) or None
     return Message('<br>'.join(lines), displayTime=LIVE_DISPLAY_TIME, link=link)
 
@@ -164,7 +199,7 @@ class FeederNowPlaying(Feeder):
         self,
         host: str = DEFAULT_VOLUMIO_HOST,
         port: int = DEFAULT_VOLUMIO_PORT,
-        panelSize: tuple[int, int] = (30, 7),
+        panelSize: tuple[int, int] = TIVOLI_PANEL_SIZE,
         poll_seconds: float = DEFAULT_POLL_SECONDS,
     ) -> None:
         super().__init__()
@@ -248,6 +283,7 @@ if __name__ == '__main__':
         {'_error': 'timed out', '_host': '192.168.1.4:3000'},
     ]
     for sample in samples:
-        message = format_volumio_state(sample, (30, 7))
-        print('---')
-        print(message.text.replace('<br>', '\n'))
+        print('--- 30x7 ---')
+        print(format_volumio_state(sample, (30, 7)).text.replace('<br>', '\n'))
+        print('--- 16x7 ---')
+        print(format_volumio_state(sample, TIVOLI_PANEL_SIZE).text.replace('<br>', '\n'))

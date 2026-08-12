@@ -24,7 +24,6 @@ import kivy.app
 import kivy.graphics
 import kivy.graphics.texture
 import kivy.clock
-import kivy.core.window
 
 import datetime
 import threading
@@ -34,6 +33,8 @@ class KiviGraphicInterface(grabst.GraphicInterface):
     def __init__(self):
         super().__init__()
         self.kivi_app= kivy.app.App()
+        self.overscan = 0
+        self.display_size = None
 
     def start(self, drawFunction, sizeRequirement, framePerSecond, fullscreen=False):
         
@@ -56,19 +57,22 @@ class KiviGraphicInterface(grabst.GraphicInterface):
                         kivy.graphics.PushMatrix()
 
                         if sizeRequirement:
+                            raw = self.overscan
+                            if isinstance(raw, (tuple, list)) and len(raw) == 4:
+                                left, bottom, right, top = [max(0, int(v)) for v in raw]
+                            else:
+                                inset = max(0, int(raw or 0))
+                                left = bottom = right = top = inset
                             width, height = root.size
+                            width = max(1.0, width - left - right)
+                            height = max(1.0, height - top - bottom)
                             w,h = sizeRequirement
                             f1 = width / w
                             f2 = height / h
                             f = min(f1,f2)
-                            if f1 > f2:
-                                # add horizontal padding
-                                padding = (width - w*f) / 2
-                                kivy.graphics.Translate(padding, 0, 0)
-                            else:
-                                # add vertical padding
-                                padding = (height - h*f) / 2
-                                kivy.graphics.Translate(0, padding, 0)                       
+                            pad_x = (width - w * f) / 2.0
+                            pad_y = (height - h * f) / 2.0
+                            kivy.graphics.Translate(left + pad_x, bottom + pad_y, 0)
 
                             kivy.graphics.Scale(f, f, 1.0)
 
@@ -83,24 +87,29 @@ class KiviGraphicInterface(grabst.GraphicInterface):
         # schedule the update function to be called at the specified frame rate
         kivy.clock.Clock.schedule_interval(update, 1.0 / framePerSecond)
         
-        # set window size based on size requirement
-        window = kivy.core.window.Window
-        if sizeRequirement:
-            window.size = sizeRequirement
-
-        # apply fullscreen if requested
+        from kivy.core.window import Window
+        window = Window
         if fullscreen:
+            if self.display_size:
+                window.size = self.display_size
+            window.borderless = True
             window.fullscreen = True
+        elif sizeRequirement:
+            window.size = sizeRequirement
+        logger_size = getattr(self, '_logged_size', False)
+        if not logger_size:
+            self._logged_size = True
+            print('Kivy window size', tuple(window.size), 'root will follow')
 
         # bind keyboard events
-        kivy.core.window.Window.bind(on_key_down=self._on_keyboard)
+        Window.bind(on_key_down=self._on_keyboard)
 
         threading.current_thread().name = "KivyMain"
         self.kivi_app.run()
 
     def toggleFullScreen(self):
-        window = kivy.core.window.Window
-        window.fullscreen = not window.fullscreen
+        from kivy.core.window import Window
+        Window.fullscreen = not Window.fullscreen
 
     def _on_keyboard(self, window, key, scancode, codepoint, modifier):
         self.onKeyEvent.call(key, scancode, codepoint, modifier)
@@ -111,21 +120,28 @@ class KiviGraphicInterface(grabst.GraphicInterface):
     
 class CanvasWrapperKivy(grabst.Canvas):
 
+    _texture_cache = {}
+
     def __init__(self, kivyCanvas):
         super().__init__()
         self.kiwyCanvas = kivyCanvas
         self.currentColor = grabst.Palette.WHITE
 
+    def _texture_for(self, image):
+        cache = CanvasWrapperKivy._texture_cache
+        key = id(image)
+        texture = cache.get(key)
+        if texture is None:
+            texture = kivy.graphics.texture.Texture.create(size=image.size)
+            texture.mag_filter = 'nearest'
+            texture.min_filter = 'nearest'
+            texture.blit_buffer(image.tobytes(), colorfmt='rgba')
+            cache[key] = texture
+        return texture
+
     def _drawImage(self, image, x0, y0, rotation, verStretch, horStretch):
 
-        # create texture
-        texture = kivy.graphics.texture.Texture.create(size=image.size)
-        texture.mag_filter = 'nearest'  # or 'linear'
-        texture.min_filter = 'nearest'  # or 'linear
-
-        # Convert the PIL Image to a Kivy Texture
-        texture.blit_buffer(image.tobytes(), colorfmt='rgba')
-        
+        texture = self._texture_for(image)
 
         # Draw the image onto the canvas
         canvas = self.kiwyCanvas
@@ -155,8 +171,8 @@ class CanvasWrapperKivy(grabst.Canvas):
         self.setColor(previous_color, 1.0)
     
     def _getSize(self):
-        w=kivy.core.window.Window
-        return w.width, w.height
+        from kivy.core.window import Window
+        return Window.width, Window.height
         
     # helper function
 

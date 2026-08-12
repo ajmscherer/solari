@@ -467,10 +467,11 @@ class GlyphRanker:
 
 class GlyphPanel:
 
-    def __init__(self, glyphSet, glyphSize, glyphPadding, panelDimension, portRotationSpeed, portRefreshLapse, sound) -> None:
+    def __init__(self, glyphSet, glyphSize, glyphPadding, panelDimension, portRotationSpeed, portRefreshLapse, sound, panelPadding=DEFAULT_PANEL_PADDING) -> None:
         self.glyphSet = glyphSet
         self.glyphSize = glyphSize
         self.glyphPadding = glyphPadding
+        self.panelPadding = panelPadding
         self.panelDimension = panelDimension
         self.portRotationSpeed = portRotationSpeed
         self.portRefreshLapse = portRefreshLapse
@@ -595,8 +596,8 @@ class GlyphPanel:
         rowLength, rowCount = self.panelDimension
         w, h = self.glyphSize
         padding = self.glyphPadding
-        panelWidth = (rowLength-1) * (w + padding) + w + DEFAULT_PANEL_PADDING*2
-        panelHeight = (rowCount-1) * (h+padding) + h + DEFAULT_PANEL_PADDING*2
+        panelWidth = (rowLength-1) * (w + padding) + w + self.panelPadding*2
+        panelHeight = (rowCount-1) * (h+padding) + h + self.panelPadding*2
         return panelWidth, panelHeight
 
     def draw(self, canvas, time):
@@ -608,7 +609,7 @@ class GlyphPanel:
 
         (glyphWidth, glyphHeight),padding = self.glyphSize, self.glyphPadding
 
-        x0,y0= DEFAULT_PANEL_PADDING, DEFAULT_PANEL_PADDING
+        x0,y0= self.panelPadding, self.panelPadding
 
         # draw all glyphs
         for row, rowGlyphPort in enumerate(self.glyphPorts):
@@ -621,8 +622,8 @@ class GlyphPanel:
         '''Draw flashing green disque on the panel'''
         if (time.second) % 2 == 0:
             w,h = self.getSize()
-            w-= DEFAULT_PANEL_PADDING * 3 / 4
-            h-= DEFAULT_PANEL_PADDING + self.glyphSize[1] // 2
+            w-= self.panelPadding * 3 / 4
+            h-= self.panelPadding + self.glyphSize[1] // 2
             diam=1.5
             canvas.drawCircle(w, h, diam, color=Palette.GREEN, width=diam)
 
@@ -672,7 +673,8 @@ class SolariApp(GraphicApp):
             panelDimension=panelSize, 
             portRotationSpeed=portRotationSpeed,
             portRefreshLapse=portRefreshLapse,
-            sound=sound)
+            sound=sound,
+            panelPadding=panelPadding)
 
         self.graphicInterface.onKeyEvent.bind(self._on_keyboard)
 
