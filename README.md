@@ -20,6 +20,8 @@ A short demo video is available here. Just click on the picture to start the You
 
 If you want the quick version: Solari launches a split-flap style board, gathers messages from selected information sources, and animates them as if they were being physically flipped into place.
 
+Running Solari as the now-playing display on the Tivoli Volumio Raspberry Pi is documented in [TIVOLI.md](TIVOLI.md) (`python code/solari_run.py tivoli`).
+
 ## Features
 
 - Split-flap inspired display animation with a strong retro information-board feel

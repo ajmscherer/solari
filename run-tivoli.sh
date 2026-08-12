@@ -6,6 +6,11 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+# Keep a home-directory copy of the Pi install note next to this tree.
+if [ -f "$ROOT/TIVOLI.md" ] && [ -d /home/volumio ]; then
+  cp -f "$ROOT/TIVOLI.md" /home/volumio/TIVOLI.md
+fi
+
 if [ -f .venv/bin/activate ]; then
   # Desktop / Mac
   # shellcheck disable=SC1091
