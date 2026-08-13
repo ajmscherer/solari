@@ -24,6 +24,10 @@ python code/solari_run.py tivoli       # Volumio now-playing
 python code/solari_run.py tivoli -fs
 ```
 
+<p align="center">
+  <img src="resources/images/Volumio3.jpg" alt="Tivoli Model Two with Solari now-playing" width="680">
+</p>
+
 ---
 
 ## What Tivoli is
@@ -36,6 +40,10 @@ python code/solari_run.py tivoli -fs
 
 Do **not** replace Volumio’s system Python. Do **not** run the Chromium kiosk
 and Solari at the same time (869 MB RAM).
+
+<p align="center">
+  <img src="resources/images/Volumio2.jpg" alt="Tivoli stack on the shelf" width="680">
+</p>
 
 ---
 
@@ -147,6 +155,12 @@ The Pi does **not** pull GitHub by itself.
 ---
 
 ## Display calibration (current)
+
+<p align="center">
+  <img src="resources/images/Volumio1.jpg" alt="Calibrated 18x7 board on the 640x480 LCD" height="340">
+  &nbsp;&nbsp;
+  <img src="resources/images/volumio-demo.gif" alt="Flap animation on Tivoli" height="340">
+</p>
 
 Framebuffer is **640×480** (confirmed via `fb0` and `xrandr`).  
 Tivoli mode forces that size in Kivy **before** the window is created.

@@ -22,6 +22,10 @@ If you want the quick version: Solari launches a split-flap style board, gathers
 
 Running Solari as the now-playing display on the Tivoli Volumio Raspberry Pi is documented in [TIVOLI.md](TIVOLI.md) (`python code/solari_run.py tivoli`).
 
+<p align="center">
+  <img src="resources/images/Volumio3.jpg" alt="Solari on the Tivoli Volumio player" width="680">
+</p>
+
 ## Features
 
 - Split-flap inspired display animation with a strong retro information-board feel
