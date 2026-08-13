@@ -220,7 +220,124 @@ VS Code launch item (local `.vscode/launch.json`, gitignored):
 
 ---
 
+## Machine manifest (discovered 2026-08-12)
+
+No passwords, tokens, Wi‑Fi PSKs, or API keys are recorded here. Treat the
+`volumio` login as sensitive and change it if it is still the factory default.
+
+### Identity
+
+| | |
+|---|---|
+| Player name | Tivoli |
+| Hostname | `tivoli` |
+| Typical LAN address | `<tivoli-ip>/24` (DHCP on `wlan0`) |
+| SSH | user `volumio`, port 22 (key login was not set up) |
+| Timezone | America/New_York |
+| UI language | English |
+
+### Hardware
+
+| | |
+|---|---|
+| Board | Raspberry Pi 3 Model B Plus Rev 1.4 |
+| CPU | 4× ARM Cortex-A53, armv7l, 600–1400 MHz |
+| RAM | 869 MiB (no swap) |
+| Storage | 32 GB microSD (`mmcblk0`) |
+| Ethernet | `eth0` present , usually unplugged (no carrier) |
+| Wi‑Fi | `wlan0`, DHCP via `<lan-gateway>`, SSID seen: `swn_hudson` |
+| Display | 640×480 framebuffer (`BCM2708 FB` / X `640x480`) |
+| Touch | USB HID `wch.cn USB2IIC_CTP_CONTROL` (QinHeng `1a86:e5e3`) |
+| DAC | I2S HAT, ALSA card `BossDAC` / pcm512x, overlay `allo-boss-dac-pcm512x-audio`, labelled **Innomaker DAC** in Volumio |
+| Other audio | onboard HDMI and headphone jack present, idle |
+| USB | Pi hub (SMSC 0424) plus the touch controller |
+
+### Disk layout
+
+| Device | Label | Size | Mount |
+|---|---|---|---|
+| `mmcblk0p1` | boot (vfat) | 91.6 MB | `/boot` |
+| `mmcblk0p2` | volumio (ext4) | 2.5 GB | `/imgpart` |
+| `mmcblk0p3` | volumio_data (ext4) | 27.1 GB | overlay upper (`/mnt/ext`) |
+| loop squashfs | | ~498 MB | `/static` (read-only OS) |
+| overlay | | ~27 GB | `/` (~24 GB free at discovery) |
+
+### Operating system
+
+| | |
+|---|---|
+| Product | Volumio 3.912 for Raspberry Pi |
+| Base | Raspbian GNU/Linux 10 (buster), Debian 10.13 |
+| Kernel | `6.6.62-v7+` `#1816` armv7l |
+| Build date | Fri 27 Feb 2026 |
+| Python | **3.7.3** (`/usr/bin/python3`) — do not replace |
+| Auto-update | off |
+| Accounts | `root`, `volumio` (uid 1000, groups include `audio`, `gpio`, `i2c`, `spi`) |
+
+### Audio / player stack
+
+- Output device: BossDAC, hardware mixer `Digital`, no resampling
+- Observed playback: 48 kHz / 32-bit stereo
+- MPD on `localhost:6600` (library last scanned 2025-09-20: ~1447 artists / 1049 albums / 17400 tracks)
+- Webradio (FIP and a Radio France–heavy favourite list)
+- Spotify Connect: `spop` + `go-librespot` (account linked; tokens not stored here)
+- AirPlay: `shairport-sync`
+- UPnP renderer: `upmpdcli`
+- MyVolumio: signed in (tokens not stored here)
+
+Volumio webradio `getState` for FIP typically only reports `title=FIP` and
+`artist=fip-hifi.aac` — no current track. Library and AirPlay do send title/artist.
+
+### Network services (listening)
+
+| Port | Role |
+|---|---|
+| 22 | SSH |
+| 139 / 445 | Samba (shares: Internal Storage, USB, NAS; guest write was enabled) |
+| 3000 / 3005 | Volumio UI |
+| 3001 | albumart |
+| 4004 | Now Playing kiosk page |
+| 5000 / 49149 / 49152 | UPnP |
+| 6600 | MPD |
+| 9879 | Spotify Connect (localhost) |
+
+NAS mount configured: CIFS `//<nas-host>/Public` as **AlexCloud** (SMB 2.1, empty user/password). Often not mounted. USB `/media` was empty.
+
+UPnP favourite seen toward `<upnp-host>:9000` (Twonky-style).
+
+### Volumio plugins (user-installed)
+
+| Plugin | Category | Notes |
+|---|---|---|
+| `spop` | music_service | Spotify, started |
+| `podcast` | music_service | installed, stopped |
+| `now_playing` | user_interface | kiosk UI on :4004 |
+| `touch_display` | user_interface | owns `volumio-kiosk.service` / X |
+| `Systeminfo` | user_interface | started |
+| `solari_display` | music_service | Browse tile → switch to Solari |
+
+Hotspot name seen in config: `Volumio-201DF` (not used while associated to LAN).
+
+### Solari-on-Pi extras (not stock Volumio)
+
+- App tree `/home/volumio/solari`
+- pip `--user`: Kivy **2.3.0**, Pillow 9.x, `schedule`
+- apt: `python3-pip`, `libsdl2-image/ttf/mixer` (plus build-essential pulled in)
+- systemd drop-in: `/etc/systemd/system/volumio-kiosk.service.d/tivoli.conf`
+- Display mode file: `/home/volumio/.tivoli-display-mode`
+
+### Full-card backup (Mac)
+
+A live gzip image of the 32 GB card (taken 2026-08-12, playback paused) is on this Mac:
+
+`/Users/alex/Backups/tivoli/tivoli-sdcard-20260812.img.gz`
+
+Restore steps are in `RESTORE.txt` next to it. That image predates Solari-on-Pi.
+
+---
+
 ## When you change Solari-for-Pi
 
-Update **this file in the same PR/commit** (packages, paths, overscan, launch).
-Then deploy so both Pi copies stay current.
+Update **this file in the same PR/commit** (packages, paths, overscan, launch,
+and this manifest if hardware or services change). Then deploy so both Pi
+copies stay current.
