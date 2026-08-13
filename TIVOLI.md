@@ -35,7 +35,7 @@ python code/solari_run.py tivoli -fs
 - Hardware: Raspberry Pi 3 Model B Plus, Allo Boss / Innomaker I2S DAC, 640×480
   touchscreen (`wch.cn USB2IIC_CTP_CONTROL`)
 - OS: Volumio 3.912 (Raspbian Buster, **Python 3.7.3**, armv7l)
-- Player: hostname `tivoli`, typically `<tivoli-ip>`, user `volumio`
+- Player: hostname `tivoli`, LAN DHCP, user `volumio`
 - Solari talks to Volumio at `http://127.0.0.1:3000/api/v1/getState`
 
 Do **not** replace Volumio’s system Python. Do **not** run the Chromium kiosk
@@ -231,7 +231,7 @@ No passwords, tokens, Wi‑Fi PSKs, or API keys are recorded here. Treat the
 |---|---|
 | Player name | Tivoli |
 | Hostname | `tivoli` |
-| Typical LAN address | `<tivoli-ip>/24` (DHCP on `wlan0`) |
+| Typical LAN address | DHCP on `wlan0` |
 | SSH | user `volumio`, port 22 (key login was not set up) |
 | Timezone | America/New_York |
 | UI language | English |
@@ -244,8 +244,8 @@ No passwords, tokens, Wi‑Fi PSKs, or API keys are recorded here. Treat the
 | CPU | 4× ARM Cortex-A53, armv7l, 600–1400 MHz |
 | RAM | 869 MiB (no swap) |
 | Storage | 32 GB microSD (`mmcblk0`) |
-| Ethernet | `eth0` present , usually unplugged (no carrier) |
-| Wi‑Fi | `wlan0`, DHCP via `<lan-gateway>`, SSID seen: `swn_hudson` |
+| Ethernet | `eth0` present, usually unplugged (no carrier) |
+| Wi‑Fi | `wlan0`, DHCP client |
 | Display | 640×480 framebuffer (`BCM2708 FB` / X `640x480`) |
 | Touch | USB HID `wch.cn USB2IIC_CTP_CONTROL` (QinHeng `1a86:e5e3`) |
 | DAC | I2S HAT, ALSA card `BossDAC` / pcm512x, overlay `allo-boss-dac-pcm512x-audio`, labelled **Innomaker DAC** in Volumio |
@@ -301,9 +301,9 @@ Volumio webradio `getState` for FIP typically only reports `title=FIP` and
 | 6600 | MPD |
 | 9879 | Spotify Connect (localhost) |
 
-NAS mount configured: CIFS `//<nas-host>/Public` as **AlexCloud** (SMB 2.1, empty user/password). Often not mounted. USB `/media` was empty.
+NAS mount configured: CIFS share **AlexCloud** (`Public`, SMB 2.1, guest). Often not mounted. USB `/media` was empty.
 
-UPnP favourite seen toward `<upnp-host>:9000` (Twonky-style).
+UPnP favourite seen toward a LAN media server on port 9000 (Twonky-style).
 
 ### Volumio plugins (user-installed)
 
