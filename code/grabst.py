@@ -136,6 +136,7 @@ class GraphicInterface(ABC):
     def __init__(self) -> None:
         super().__init__()  
         self.onKeyEvent = Event()
+        self.onTouchEvent = Event()
 
     @abstractmethod
     def start(self, drawFunction, sizeRequirement, framePerSecond, fullscreen=False):

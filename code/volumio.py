@@ -45,7 +45,7 @@ TIVOLI_OVERSCAN = (28, 28, 28, 28)
 TIVOLI_PANEL_SIZE = (18, 7)
 TIVOLI_GLYPH_PADDING = 2
 TIVOLI_PANEL_PADDING = 4
-TIVOLI_FPS = 12
+TIVOLI_FPS = 8
 
 def _tivoli_glyph_metrics():
     left, bottom, right, top = TIVOLI_OVERSCAN

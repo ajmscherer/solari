@@ -66,12 +66,17 @@ if args.mode == 'tivoli':
     from kivy.config import Config
     Config.set('graphics', 'width', str(TIVOLI_DISPLAY_SIZE[0]))
     Config.set('graphics', 'height', str(TIVOLI_DISPLAY_SIZE[1]))
-    Config.set('graphics', 'fullscreen', 'auto')
-    Config.set('graphics', 'borderless', '1')
-    Config.set('graphics', 'resizable', '0')
-    Config.set('graphics', 'position', 'custom')
-    Config.set('graphics', 'left', '0')
-    Config.set('graphics', 'top', '0')
+    if args.fullscreen:
+        Config.set('graphics', 'fullscreen', 'auto')
+        Config.set('graphics', 'borderless', '1')
+        Config.set('graphics', 'resizable', '0')
+        Config.set('graphics', 'position', 'custom')
+        Config.set('graphics', 'left', '0')
+        Config.set('graphics', 'top', '0')
+    else:
+        Config.set('graphics', 'fullscreen', '0')
+        Config.set('graphics', 'borderless', '0')
+        Config.set('graphics', 'resizable', '1')
 
 from common import Helper
 from infofetch import InfoSource

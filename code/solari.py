@@ -36,6 +36,7 @@ try:
     import simpleaudio
 except ImportError:
     simpleaudio = None
+import os
 import threading
 import random
 import time
@@ -677,6 +678,8 @@ class SolariApp(GraphicApp):
             panelPadding=panelPadding)
 
         self.graphicInterface.onKeyEvent.bind(self._on_keyboard)
+        self.graphicInterface.onTouchEvent.bind(self._on_touch)
+        self._touch_armed_at = time.time() + 1.5
 
         # initialize message0 to an empty message to avoid errors when the user clicks on the panel before the first message is loaded from the feeder
         self.message0 = None
@@ -705,8 +708,27 @@ class SolariApp(GraphicApp):
             else:
                 logger.error('No link to open')
                 return False
+
+        elif codepoint == 'v':
+            self._switch_to_volumio()
+            return True
         
         return False
+
+    def _on_touch(self, touch):
+        if time.time() < self._touch_armed_at:
+            return
+        self._switch_to_volumio()
+
+    def _switch_to_volumio(self):
+        logger.info('Switching to Volumio display')
+        mode_file = os.environ.get('TIVOLI_MODE_FILE', '/home/volumio/.tivoli-display-mode')
+        try:
+            with open(mode_file, 'w') as handle:
+                handle.write('volumio\n')
+        except OSError as exc:
+            logger.error('Could not write display mode: %s', exc)
+        os._exit(10)
 
     def _cycle(self):
 

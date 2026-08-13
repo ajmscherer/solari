@@ -1,0 +1,14 @@
+{
+  "name": "solari_display",
+  "version": "1.0.0",
+  "description": "Switch the Tivoli screen to the Solari now-playing board",
+  "main": "index.js",
+  "author": "Alex Scherer",
+  "license": "AGPL-3.0-or-later",
+  "volumio_info": {
+    "prettyName": "Solari",
+    "icon": "fa-th",
+    "plugin_type": "music_service",
+    "boot_priority": 20
+  }
+}

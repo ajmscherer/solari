@@ -101,8 +101,8 @@ class KiviGraphicInterface(grabst.GraphicInterface):
             self._logged_size = True
             print('Kivy window size', tuple(window.size), 'root will follow')
 
-        # bind keyboard events
         Window.bind(on_key_down=self._on_keyboard)
+        Window.bind(on_touch_down=self._on_touch)
 
         threading.current_thread().name = "KivyMain"
         self.kivi_app.run()
@@ -113,6 +113,9 @@ class KiviGraphicInterface(grabst.GraphicInterface):
 
     def _on_keyboard(self, window, key, scancode, codepoint, modifier):
         self.onKeyEvent.call(key, scancode, codepoint, modifier)
+
+    def _on_touch(self, window, touch):
+        self.onTouchEvent.call(touch)
 
     def setTitle(self, title):
         self.kivi_app.title = title

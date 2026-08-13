@@ -154,6 +154,30 @@ The Pi does **not** pull GitHub by itself.
 
 ---
 
+## Switching displays
+
+| From | To | Action |
+|---|---|---|
+| Solari | Volumio | Tap the screen (or press `v` on a keyboard) |
+| Volumio | Solari | Browse → **Solari** tile (Now Playing browse, or the Sources list) |
+| Boot / reboot | Solari | Default. `volumio-kiosk.service` starts `tivoli/tivoli-session.sh` |
+
+Mode is stored in `/home/volumio/.tivoli-display-mode` (`solari` or `volumio`).
+Scripts: `tivoli/switch-to-solari.sh`, `tivoli/switch-to-volumio.sh`.
+
+One-time install (after the files are on the Pi):
+
+```bash
+bash /home/volumio/solari/tivoli/install-display.sh
+echo volumio | sudo -S systemctl restart volumio-kiosk.service
+volumio vrestart
+```
+
+That writes a systemd drop-in so a reboot comes up on Solari, and registers the
+Browse tile. Leave the Touch Display plugin enabled (it owns the kiosk unit).
+
+---
+
 ## Display calibration (current)
 
 <p align="center">
@@ -169,13 +193,13 @@ Tivoli mode forces that size in Kivy **before** the window is created.
 |---|---|
 | Panel | 18 columns × 7 rows |
 | Overscan (L,B,R,T) | 28, 28, 28, 28 (equal; board is then centered) |
-| Frame rate | 12 |
+| Frame rate | 6 |
 | Glyph size | computed from the usable 584×424 rectangle |
 
 Constants live in `code/volumio.py` (`TIVOLI_*`). Layout is a compact now-playing
 card (date/time, title/artist/album, `PLAY 46` / source).
 
-Graphics are Mesa **llvmpipe** (CPU). Fine for 18×7 at 12 fps with cached
+Graphics are Mesa **llvmpipe** (CPU). Fine for 18×7 at 6 fps with cached
 textures. Do not let `simpleaudio` open the Boss DAC.
 
 ---
