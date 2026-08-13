@@ -159,8 +159,12 @@ The Pi does **not** pull GitHub by itself.
 | From | To | Action |
 |---|---|---|
 | Solari | Volumio | Tap the screen (or press `v` on a keyboard) |
-| Volumio | Solari | Browse → **Solari** tile (Now Playing browse, or the Sources list) |
+| Volumio | Solari | Gold **SOLARI** tab on the left of the Now Playing screen. Also Browse → **Solari** tile (music-note icon in Now Playing, or Sources in the main UI) |
 | Boot / reboot | Solari | Default. `volumio-kiosk.service` starts `tivoli/tivoli-session.sh` |
+
+The Volumio kiosk is the Now Playing plugin (`http://localhost:4004`), not the main Browse home. A missing **Solari** tile usually means the `solari_display` plugin failed to start (`kew` module path). Re-run `tivoli/install-display.sh` then `volumio vrestart`.
+
+The Now Playing “info” view asks for a Genius lyrics token. We do not ship a token. The kiosk hides that error; lyrics stay off unless you add your own token in the Now Playing plugin settings.
 
 Mode is stored in `/home/volumio/.tivoli-display-mode` (`solari` or `volumio`).
 Scripts: `tivoli/switch-to-solari.sh`, `tivoli/switch-to-volumio.sh`.

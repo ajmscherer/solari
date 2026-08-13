@@ -1,7 +1,14 @@
 'use strict';
 
-const libQ = require('kew');
 const exec = require('child_process').exec;
+
+// Volumio does not put /volumio/node_modules on NODE_PATH for data plugins.
+let libQ;
+try {
+  libQ = require('kew');
+} catch (e) {
+  libQ = require('/volumio/node_modules/kew');
+}
 
 module.exports = ControllerSolariDisplay;
 

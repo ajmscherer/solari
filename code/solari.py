@@ -37,6 +37,7 @@ try:
 except ImportError:
     simpleaudio = None
 import os
+import subprocess
 import threading
 import random
 import time
@@ -728,6 +729,33 @@ class SolariApp(GraphicApp):
                 handle.write('volumio\n')
         except OSError as exc:
             logger.error('Could not write display mode: %s', exc)
+        # Keep the Solari frame on screen while Chromium starts (Pi 3 cold
+        # start is several seconds). Session loop adopts the process after we exit.
+        launcher = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'tivoli', 'start-chromium.sh',
+        )
+        if os.path.isfile(launcher) and os.path.isdir('/home/volumio'):
+            try:
+                subprocess.Popen(
+                    ['bash', launcher],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                    env=dict(os.environ, DISPLAY=os.environ.get('DISPLAY', ':0')),
+                )
+                deadline = time.time() + 6
+                while time.time() < deadline:
+                    if subprocess.call(
+                        ['pgrep', '-f', 'chromium-browser.*volumiokiosk'],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    ) == 0:
+                        time.sleep(0.35)
+                        break
+                    time.sleep(0.15)
+            except OSError as exc:
+                logger.error('Could not prestart Chromium: %s', exc)
         os._exit(10)
 
     def _cycle(self):

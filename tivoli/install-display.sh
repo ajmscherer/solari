@@ -12,12 +12,17 @@ fi
 
 chmod +x "$ROOT/run-tivoli.sh" \
   "$ROOT/tivoli/tivoli-session.sh" \
+  "$ROOT/tivoli/start-chromium.sh" \
+  "$ROOT/tivoli/switchd.py" \
   "$ROOT/tivoli/switch-to-solari.sh" \
   "$ROOT/tivoli/switch-to-volumio.sh"
 
 echo "Installing Volumio plugin to $PLUGIN_DST"
-mkdir -p "$PLUGIN_DST"
+mkdir -p "$PLUGIN_DST/node_modules"
 cp -a "$PLUGIN_SRC/." "$PLUGIN_DST/"
+if [ -d /volumio/node_modules/kew ]; then
+  ln -sfn /volumio/node_modules/kew "$PLUGIN_DST/node_modules/kew"
+fi
 chown -R volumio:volumio "$PLUGIN_DST"
 
 python3 - << 'PY'

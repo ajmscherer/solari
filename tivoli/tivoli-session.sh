@@ -10,6 +10,17 @@ LOG=/tmp/tivoli-session.log
 
 log() { echo "$(date -Iseconds) $*" >> "$LOG"; }
 
+ensure_switchd() {
+  if ! timeout 0.3 bash -c '</dev/tcp/127.0.0.1/4011' >/dev/null 2>&1; then
+    python3 "$ROOT/tivoli/switchd.py" >>/tmp/tivoli-switchd.log 2>&1 &
+    log "started switchd pid=$!"
+  fi
+}
+
+chromium_running() {
+  pgrep -f 'chromium-browser.*volumiokiosk' >/dev/null 2>&1
+}
+
 if [ -f "$ROOT/TIVOLI.md" ]; then
   cp -f "$ROOT/TIVOLI.md" /home/volumio/TIVOLI.md 2>/dev/null || true
 fi
@@ -30,34 +41,32 @@ if [ -x /usr/bin/openbox-session ]; then
   openbox-session >/tmp/tivoli-openbox.log 2>&1 &
 fi
 
+ensure_switchd
+xsetroot -solid '#000000' 2>/dev/null || true
+
 log "session loop starting"
 while true; do
   MODE="$(tr -d '[:space:]' < "$MODE_FILE" 2>/dev/null || true)"
   [ -n "$MODE" ] || MODE=solari
   log "mode=$MODE"
   if [ "$MODE" = volumio ]; then
-    sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' /data/volumiokiosk/Default/Preferences 2>/dev/null || true
-    sed -i 's/"exit_type":"Crashed"/"exit_type":"None"/' /data/volumiokiosk/Default/Preferences 2>/dev/null || true
-    rm -f /data/volumiokiosk/SingletonCookie /data/volumiokiosk/SingletonLock /data/volumiokiosk/SingletonSocket 2>/dev/null || true
+    ensure_switchd
+    xsetroot -solid '#000000' 2>/dev/null || true
     export DISPLAY="${DISPLAY:-:0}"
-    /usr/bin/chromium-browser \
-      --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' \
-      --force-device-scale-factor=1 \
-      --load-extension= \
-      --kiosk \
-      --touch-events \
-      --no-first-run \
-      --noerrdialogs \
-      --disable-gpu-compositing \
-      --disable-3d-apis \
-      --disable-breakpad \
-      --disable-crash-reporter \
-      --disable-background-networking \
-      --disable-remote-extensions \
-      --disable-pinch \
-      --user-data-dir='/data/volumiokiosk' \
-      http://localhost:4004
-    log "chromium exited $?"
+    for _ in 1 2 3 4 5 6 7 8; do
+      chromium_running && break
+      sleep 0.2
+    done
+    if chromium_running; then
+      log "chromium already running"
+      while chromium_running; do
+        sleep 0.4
+      done
+      log "chromium exited"
+    else
+      "$ROOT/tivoli/start-chromium.sh"
+      log "chromium exited $?"
+    fi
   else
     "$ROOT/run-tivoli.sh" -fs
     code=$?
@@ -68,5 +77,5 @@ while true; do
       log "next mode=volumio"
     fi
   fi
-  sleep 0.4
+  sleep 0.05
 done

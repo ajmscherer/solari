@@ -1,0 +1,20 @@
+#tivoli-solari-btn {
+  position: fixed;
+  left: 0;
+  bottom: 56px;
+  z-index: 2147483647;
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 0 8px 8px 0;
+  background: #c4a35a;
+  color: #1a1408;
+  font: 700 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.06em;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#tivoli-solari-btn:active {
+  background: #e0c47a;
+}
